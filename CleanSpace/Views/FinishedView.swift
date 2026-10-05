@@ -38,6 +38,7 @@ struct FinishedView: View {
         }
         .padding(.horizontal, 24)
         .padding(.bottom, 16)
+        .navigationBarBackButtonHidden()
     }
 
     private var results: some View {

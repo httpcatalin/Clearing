@@ -2,7 +2,7 @@ import SwiftUI
 
 struct ReviewView: View {
     let viewModel: PhotoReviewViewModel
-    let onStartAgain: () -> Void
+    let onFinished: () -> Void
 
     @State private var dragOffset: CGSize = .zero
     @State private var isSwipingOut = false
@@ -11,20 +11,6 @@ struct ReviewView: View {
     private let swipeOutDistance: CGFloat = 600
 
     var body: some View {
-        Group {
-            if viewModel.isFinished {
-                FinishedView(viewModel: viewModel, onStartAgain: onStartAgain)
-                    .transition(.opacity)
-            } else {
-                reviewContent
-            }
-        }
-        .navigationTitle(viewModel.isFinished ? "" : "Review")
-        .navigationBarTitleDisplayMode(.inline)
-        .navigationBarBackButtonHidden(viewModel.isFinished)
-    }
-
-    private var reviewContent: some View {
         VStack(spacing: 20) {
             ProgressView(value: viewModel.progress)
                 .animation(.easeOut(duration: 0.3), value: viewModel.progress)
@@ -38,6 +24,8 @@ struct ReviewView: View {
         .padding(.horizontal, 24)
         .padding(.top, 8)
         .padding(.bottom, 12)
+        .navigationTitle("Review")
+        .navigationBarTitleDisplayMode(.inline)
         .sensoryFeedback(.impact(weight: .light), trigger: viewModel.reviewedCount)
     }
 
@@ -52,7 +40,6 @@ struct ReviewView: View {
                             decisionBadge
                         }
                     }
-                    .scaleEffect(isTopCard ? 1 : 0.94)
                     .offset(isTopCard ? dragOffset : .zero)
                     .rotationEffect(.degrees(isTopCard ? dragOffset.width / 18 : 0), anchor: .bottom)
                     .allowsHitTesting(isTopCard)
@@ -107,7 +94,7 @@ struct ReviewView: View {
         .font(.headline)
         .controlSize(.large)
         .buttonBorderShape(.capsule)
-        .disabled(isSwipingOut)
+        .disabled(isSwipingOut || viewModel.isFinished)
     }
 
     private var dragGesture: some Gesture {
@@ -147,11 +134,13 @@ struct ReviewView: View {
         withAnimation(.easeIn(duration: 0.22)) {
             dragOffset = CGSize(width: toRight ? swipeOutDistance : -swipeOutDistance, height: dragOffset.height)
         } completion: {
-            withAnimation(.spring(response: 0.35, dampingFraction: 0.85)) {
-                decide()
-            }
+            decide()
             dragOffset = .zero
             isSwipingOut = false
+
+            if viewModel.isFinished {
+                onFinished()
+            }
         }
     }
 }
@@ -181,7 +170,7 @@ private struct PhotoCard: View {
             viewModel: PhotoReviewViewModel(
                 reviewService: PhotoReviewService(repository: LocalPhotoRepository())
             ),
-            onStartAgain: {}
+            onFinished: {}
         )
     }
 }

@@ -55,7 +55,7 @@ final class PhotoReviewViewModel {
     }
 
     var positionText: String {
-        "Photo \(reviewedCount + 1) of \(totalCount)"
+        "Photo \(min(reviewedCount + 1, totalCount)) of \(totalCount)"
     }
 
     var currentSizeText: String {
@@ -105,6 +105,6 @@ final class PhotoReviewViewModel {
     }
 
     private func formattedSize(_ bytes: Int64) -> String {
-        ByteCountFormatter.string(fromByteCount: bytes, countStyle: .file)
+        bytes.formatted(.byteCount(style: .file, allowedUnits: [.mb, .gb], spellsOutZero: false))
     }
 }

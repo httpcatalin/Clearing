@@ -3,10 +3,10 @@ import SwiftUI
 struct HomeView: View {
     let viewModel: PhotoReviewViewModel
 
-    @State private var isReviewing = false
+    @State private var path: [Destination] = []
 
     var body: some View {
-        NavigationStack {
+        NavigationStack(path: $path) {
             VStack(alignment: .leading, spacing: 0) {
                 header
 
@@ -25,9 +25,16 @@ struct HomeView: View {
             .padding(.horizontal, 24)
             .padding(.top, 32)
             .padding(.bottom, 16)
-            .navigationDestination(isPresented: $isReviewing) {
-                ReviewView(viewModel: viewModel) {
-                    isReviewing = false
+            .navigationDestination(for: Destination.self) { destination in
+                switch destination {
+                case .review:
+                    ReviewView(viewModel: viewModel) {
+                        path.append(.finished)
+                    }
+                case .finished:
+                    FinishedView(viewModel: viewModel) {
+                        path.removeAll()
+                    }
                 }
             }
         }
@@ -60,7 +67,7 @@ struct HomeView: View {
     private var startButton: some View {
         Button {
             viewModel.startReview()
-            isReviewing = true
+            path.append(.review)
         } label: {
             Text("Start Cleaning")
                 .font(.headline)
@@ -71,6 +78,11 @@ struct HomeView: View {
         .buttonBorderShape(.capsule)
         .controlSize(.large)
         .disabled(!viewModel.hasPhotos)
+    }
+
+    private enum Destination: Hashable {
+        case review
+        case finished
     }
 }
 
