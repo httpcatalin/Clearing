@@ -1,6 +1,8 @@
-# CleanSpace — Simple Photo Cleaner
+# Clearing — Photo Cleaner
 
-An easy and pleasant way to review unnecessary photos and free storage.
+Make room for what matters. A calm way to review photos you no longer need.
+
+The Lab 1 report is in [lab1.md](lab1.md).
 
 ## Lab
 
@@ -14,23 +16,26 @@ TMPS Lab 1 — SOLID principles
 ## What the app does
 
 ```text
-Home ──► Start Cleaning ──► Photo Review ──► Keep / Delete ──► next photo ──► Finished ──► Start Again
+Intro ──► Home ──► Start cleaning ──► Review ──► Keep / Clear ──► next photo ──► More room. ──► Done
 ```
 
-1. **Home** shows how many photos are ready to review and their total size.
-2. **Photo Review** shows one photo at a time with its position ("Photo 3 of 12") and size.
-   - Tap **Keep** or swipe right to keep it.
-   - Tap **Delete** or swipe left to mark it for deletion.
-3. **Finished** shows how many photos were reviewed, kept, marked for deletion,
-   and how much space would be freed.
+1. **Intro** — the logo forms like a photo, opens, and its halves part to reveal Home.
+2. **Home** shows your library as one object made of your photos, with a crack of light
+   running through it. Touch it and it tilts and opens a little.
+3. **Review** shows one photo at a time, with the next ones waiting underneath.
+   - Swipe right or tap **Keep**: the photo stays whole and glides into the Keep button.
+   - Swipe left or tap **Clear**: the photo cracks open along the logo's line and dissolves.
+   - The first photo nudges left and right once to show that it can be swiped.
+4. **More room.** — the light fills the screen, your library comes back with empty
+   places where cleared photos were, and the grid breathes apart.
 
-For Lab 1 the photos are 12 sample images bundled in `Assets.xcassets`,
-and "Delete" only marks a photo for deletion. Nothing is removed from the phone.
+For Lab 1 the photos are 12 sample images bundled in `Assets.xcassets`, and "Clear"
+only marks a photo. Nothing is deleted from the phone.
 
 ## Project structure
 
 ```text
-CleanSpace/
+Clearing/
 ├── Models/
 │   └── Photo.swift                  data about one photo
 ├── Protocols/
@@ -42,15 +47,61 @@ CleanSpace/
 │   ├── KeepPhotoAction.swift
 │   └── DeletePhotoAction.swift
 ├── Services/
-│   └── PhotoReviewService.swift     review rules: current photo, next photo, finished
+│   └── PhotoReviewService.swift     review rules: current photo, what comes next, finished
 ├── ViewModels/
 │   └── PhotoReviewViewModel.swift   texts and numbers for the screens
+├── DesignSystem/
+│   ├── Theme.swift                  colors, type, spacing, radii, motion and haptics
+│   └── Split.swift                  the "opening" shape: logo, icons, cracks, progress
 ├── Views/
+│   ├── RootView.swift               intro + switching between Home and Review
+│   ├── IntroView.swift
 │   ├── HomeView.swift
-│   ├── ReviewView.swift
-│   └── FinishedView.swift
-└── CleanSpaceApp.swift              creates the objects and connects them
+│   ├── ReviewView.swift             photo stack, gestures, haptics, light
+│   ├── FinishedView.swift
+│   └── Components/
+│       ├── LibrarySlab.swift        your photos as one object (Home and Finished)
+│       ├── PhotoCard.swift
+│       ├── DecisionButton.swift     Keep / Clear
+│       ├── ReviewProgress.swift
+│       ├── PrimaryButton.swift
+│       ├── StatView.swift
+│       ├── EmptyStateView.swift
+│       └── ScreenContainer.swift
+└── ClearingApp.swift              creates the objects and connects them
 ```
+
+## Design
+
+Everything is built from one idea: **a photo that opens to let space in.**
+
+The logo is a rounded photo-square cut along a rising slant. The lower part stays,
+the upper part lifts and fades. `Split.swift` draws this shape with an `opening`
+value from 0 (a closed photo) to 1 (fully open), and the whole app reuses it:
+
+| Where | Opening |
+|-------|---------|
+| App icon and header | half open |
+| Intro | forms closed, opens, then flies apart |
+| Home library | a thin crack of light, wider when touched |
+| Progress (top of Review) | opens as you review |
+| Clear (drag left) | the photo cracks open, then parts and dissolves |
+| Empty state | fully open |
+
+- **Colors:** lagoon green in Light Mode, luminous mint in Dark Mode, used as *light*.
+  Keep is ink (solid, calm), Clear is light. There is no red: clearing is positive.
+- **Typography:** SF Rounded for titles and numbers, SF Pro for text. Short copy:
+  "Make room.", "More room.", "Nothing left to clear."
+- **Motion:** small interactions are fast springs, gestures follow the finger and
+  settle with springs, navigation is calm, completion is slow. All values live in `Motion`.
+- **Haptics:** light when you touch, medium at the decision point, soft for Keep,
+  crisp for Clear, success at the end. All values live in `Haptics`.
+- **Accessibility:** Dynamic Type (screens scroll, stats stack), VoiceOver labels and
+  Keep/Clear actions on the photo, Reduce Motion (no tilt or flying, simple fades),
+  Light and Dark Mode.
+
+The UI only reads from `PhotoReviewViewModel` and calls `keepCurrentPhoto()` /
+`deleteCurrentPhoto()`. The SOLID classes below are the same as in the first version of Lab 1.
 
 ## SOLID principles implemented
 
@@ -145,7 +196,7 @@ final class PhotoReviewService {
 }
 ```
 
-The concrete repository is chosen in only one place, `CleanSpaceApp.swift`:
+The concrete repository is chosen in only one place, `ClearingApp.swift`:
 
 ```swift
 PhotoReviewService(repository: LocalPhotoRepository())
@@ -161,16 +212,16 @@ and the service, view model and views stay the same.
 
 ## How to run
 
-1. Open `CleanSpace.xcodeproj` in Xcode.
+1. Open `Clearing.xcodeproj` in Xcode.
 2. Choose an iPhone simulator (for example iPhone 17 Pro) in the toolbar.
 3. Press **Run** (⌘R).
 
-To run on a real iPhone: select the **CleanSpace** target → **Signing & Capabilities** →
+To run on a real iPhone: select the **Clearing** target → **Signing & Capabilities** →
 choose your Team, and change the Bundle Identifier if Xcode asks for a unique one.
 
 ## Future labs
 
-- `PhotoKitRepository` — real photos from the library (DIP: only `CleanSpaceApp` changes).
+- `PhotoKitRepository` — real photos from the library (DIP: only `ClearingApp` changes).
 - Real deletion through PhotoKit inside `DeletePhotoAction`.
 - New actions such as Favorite or Skip (OCP).
 - Strategy pattern for sorting or choosing which photos to review first.
