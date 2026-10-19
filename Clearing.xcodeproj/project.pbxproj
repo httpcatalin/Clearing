@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXFileReference section */
+		C5A000000000000000000011 /* lab1.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = lab1.md; sourceTree = "<group>"; };
 		C5A000000000000000000001 /* Clearing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clearing.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -32,6 +33,7 @@
 		C5A000000000000000000003 = {
 			isa = PBXGroup;
 			children = (
+				C5A000000000000000000011 /* lab1.md */,
 				C5A000000000000000000002 /* Clearing */,
 				C5A000000000000000000004 /* Products */,
 			);

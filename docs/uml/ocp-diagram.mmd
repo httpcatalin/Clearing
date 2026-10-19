@@ -1,0 +1,32 @@
+classDiagram
+    direction TB
+
+    class PhotoReviewService {
+        <<final class>>
+        +apply(action: PhotoAction)
+    }
+
+    class PhotoAction {
+        <<protocol>>
+        +execute(on: Photo)
+    }
+
+    class KeepPhotoAction {
+        <<existing>>
+        +execute(on: Photo)
+    }
+
+    class DeletePhotoAction {
+        <<existing>>
+        +execute(on: Photo)
+    }
+
+    class FavoritePhotoAction {
+        <<future, new file only>>
+        +execute(on: Photo)
+    }
+
+    PhotoReviewService ..> PhotoAction : works with any action
+    PhotoAction <|.. KeepPhotoAction
+    PhotoAction <|.. DeletePhotoAction
+    PhotoAction <|.. FavoritePhotoAction

@@ -1,0 +1,17 @@
+sequenceDiagram
+    actor User
+    participant View as ReviewView
+    participant VM as PhotoReviewViewModel
+    participant Service as PhotoReviewService
+    participant Keep as KeepPhotoAction
+
+    User->>View: taps Keep
+    View->>VM: keepCurrentPhoto()
+    VM->>Service: apply(keepAction)
+    Service->>Service: guard there is a current photo
+    Service->>Keep: execute(on: photo)
+    Keep->>Keep: keptPhotos.append(photo)
+    Service->>Service: reviewedCount += 1
+    VM->>VM: refresh()
+    VM-->>View: new state (@Observable)
+    View-->>User: next photo, "2 / 12"

@@ -1,0 +1,32 @@
+classDiagram
+    direction TB
+
+    class ClearingApp {
+        <<composition root>>
+        chooses LocalPhotoRepository
+    }
+
+    class PhotoReviewService {
+        <<high-level module>>
+        -repository: PhotoRepository
+    }
+
+    class PhotoRepository {
+        <<protocol, abstraction>>
+        +getPhotos() List~Photo~
+    }
+
+    class LocalPhotoRepository {
+        <<low-level module>>
+        +getPhotos() List~Photo~
+    }
+
+    class PhotoKitRepository {
+        <<future>>
+        +getPhotos() List~Photo~
+    }
+
+    ClearingApp ..> PhotoReviewService : injects repository
+    PhotoReviewService --> PhotoRepository : depends on
+    PhotoRepository <|.. LocalPhotoRepository : implements
+    PhotoRepository <|.. PhotoKitRepository : implements

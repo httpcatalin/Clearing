@@ -151,6 +151,22 @@ var positionText: String {
 
 If I want to change how the counter looks, I change only the view model. If I want to change the rules, I change only the service.
 
+**How the view model stays up to date (`refresh()`).** The screens watch only the view model. It's marked `@Observable`, so when its values change, SwiftUI redraws the screen. The service is a normal class and doesn't tell anyone when it changes. So after every action the view model calls `refresh()`, which copies the newest state from the service and the actions into its own properties:
+
+```swift
+private func refresh() {
+    photos = reviewService.photos
+    currentPhoto = reviewService.currentPhoto
+    reviewedCount = reviewService.reviewedCount
+    keptCount = keepAction.keptPhotos.count
+    deletedCount = deleteAction.photosToDelete.count
+    spaceToFree = deleteAction.spaceToFree
+    removedPhotoIDs = Set(deleteAction.photosToDelete.map(\.id))
+}
+```
+
+I call it in three places: in `init` (so the first screen already shows the 12 photos), in `startReview()` (everything goes back to zero) and after every Keep or Clear.
+
 ### 5.2 Open/Closed Principle (OCP)
 
 > Open for extension, closed for modification.
@@ -193,7 +209,13 @@ func apply(_ action: PhotoAction) {
 }
 ```
 
-So if later I want a **Favorite** button, I just write a new class and the service stays exactly the same:
+This UML class diagram shows the idea. The service only points at the protocol, so a new class like `FavoritePhotoAction` can be plugged in without touching the service:
+
+![OCP class diagram](docs/uml/ocp-diagram.png)
+
+**How I would add a Favorite action.** If later I want a Favorite button, these are the steps:
+
+1. Create one new file, `Clearing/Actions/FavoritePhotoAction.swift`, with a class that follows the same protocol:
 
 ```swift
 final class FavoritePhotoAction: PhotoAction {
@@ -205,7 +227,19 @@ final class FavoritePhotoAction: PhotoAction {
 }
 ```
 
-I would only add a button for it on the screen, which is normal, because the user has to see the new option.
+2. In the view model, add `private var favoriteAction = FavoritePhotoAction()`, a method `favoriteCurrentPhoto()` that calls `apply(favoriteAction)`, and a `favoriteCount` that `refresh()` fills in. In `startReview()` I create a new `FavoritePhotoAction`, so every review starts from zero.
+3. On the review screen, add a button that calls `viewModel.favoriteCurrentPhoto()`.
+
+| File | Does it change? |
+|---|---|
+| `PhotoAction.swift` | No |
+| `PhotoReviewService.swift` | **No** |
+| `KeepPhotoAction.swift`, `DeletePhotoAction.swift` | No |
+| `PhotoRepository.swift`, `LocalPhotoRepository.swift`, `Photo.swift` | No |
+| `FavoritePhotoAction.swift` | New file |
+| View model and review screen | Small additions, because the user has to see and tap the new option |
+
+The review rules don't change at all. I only add new code, and that is exactly what Open/Closed means.
 
 ### 5.3 Dependency Inversion Principle (DIP)
 
@@ -224,6 +258,31 @@ final class PhotoReviewService {
     init(repository: PhotoRepository) {
         self.repository = repository
     }
+}
+```
+
+In the words of the principle:
+
+- **High-level module:** `PhotoReviewService`, the important logic.
+- **Low-level module:** `LocalPhotoRepository`, a detail (where the photos come from).
+- **Abstraction:** the `PhotoRepository` protocol.
+
+Without DIP, the service would point straight at the detail. With DIP, both point at the protocol, and the arrow of the detail is turned around. That's where the word "inversion" comes from:
+
+```text
+Without DIP:  PhotoReviewService ──► LocalPhotoRepository
+With DIP:     PhotoReviewService ──► PhotoRepository ◄── LocalPhotoRepository
+```
+
+The same thing as a UML class diagram. `ClearingApp` is the only place that picks the real repository and gives it to the service:
+
+![DIP class diagram](docs/uml/dip-diagram.png)
+
+If I had written it without DIP, it would look like this, and the service would be stuck with one source of photos forever:
+
+```swift
+final class PhotoReviewService {
+    private let repository = LocalPhotoRepository()
 }
 ```
 
@@ -252,7 +311,66 @@ To apply DIP I used **dependency injection**: I pass the repository into the ser
 | DIP | `Clearing/Services/PhotoReviewService.swift` | `private let repository: PhotoRepository` (line 4) and `init(repository:)` (line 9) |
 | DIP | `Clearing/ClearingApp.swift` | the only place where `LocalPhotoRepository()` is chosen (line 6) |
 
-## 6. Project structure
+## 6. UML diagrams
+
+I drew the logic part of the app (not the screens) as UML diagrams. The sources are in `docs/uml/` as Mermaid files, so I can change them and draw them again.
+
+### 6.1 Class diagram
+
+![UML class diagram](docs/uml/class-diagram.png)
+
+How to read it:
+
+| Symbol | Meaning |
+|---|---|
+| `+` / `-` | public / private |
+| `«protocol»` | an interface (a protocol in Swift) |
+| dotted line with an empty triangle | **implements** the interface |
+| line with an empty diamond | **has** it, but gets it from outside (in `init`) |
+| line with a filled diamond | **has** it and creates it itself |
+| dotted arrow | **uses** it |
+| `0..*` | zero or more |
+
+What the diagram shows:
+
+- `LocalPhotoRepository` implements `PhotoRepository`, and `KeepPhotoAction` and `DeletePhotoAction` implement `PhotoAction`.
+- `PhotoReviewService` has a `PhotoRepository` (the protocol, not the real class) and uses `PhotoAction` in `apply()`.
+- `PhotoReviewViewModel` has the service and creates the two actions.
+- There is no inheritance between classes. Everything is connected through protocols and composition.
+
+### 6.2 Sequence diagram: starting the app
+
+![Sequence diagram: app start](docs/uml/sequence-app-start.png)
+
+1. `ClearingApp` creates `LocalPhotoRepository`.
+2. It gives the repository to `PhotoReviewService`, which asks it for the 12 photos.
+3. It gives the service to `PhotoReviewViewModel`, which calls `refresh()` and copies the state.
+4. `RootView` gets the view model, and Home shows "12 photos to review".
+
+### 6.3 Sequence diagram: tapping Keep
+
+![Sequence diagram: tapping Keep](docs/uml/sequence-keep.png)
+
+1. `ReviewView` calls `viewModel.keepCurrentPhoto()`.
+2. The view model calls `reviewService.apply(keepAction)`.
+3. The service checks that there is a current photo, calls `keepAction.execute(on: photo)` and moves to the next photo (`reviewedCount += 1`).
+4. `KeepPhotoAction` remembers the photo.
+5. The view model calls `refresh()` and copies the new numbers.
+6. The screen shows the next photo and "2 / 12".
+
+Clear works the same way, only with `deleteAction`. This one path goes through every layer, and all three principles show up on the way.
+
+## 7. Other OOP ideas I used
+
+| Idea | Where |
+|---|---|
+| Encapsulation | `private` and `private(set)`. For example, everyone can read `reviewedCount`, but only the service can change it. |
+| Abstraction | The two protocols. The service knows *what* a repository and an action can do, not *how*. |
+| Polymorphism | `action.execute(on: photo)` runs the Keep or the Delete version, decided at runtime, like a virtual function in C++. |
+| Composition instead of inheritance | The view model *has* a service, it doesn't inherit from it. There is no inheritance in the project, so all classes are `final`. |
+| Struct vs class | `Photo` and the screens are structs (values that get copied). The service, the view model and the actions are classes, because they are shared and their data changes over time. |
+
+## 8. Project structure
 
 ```text
 Clearing/
@@ -283,7 +401,7 @@ Clearing/
 └── ClearingApp.swift            creates all objects and connects them
 ```
 
-## 7. Screenshots
+## 9. Screenshots
 
 <p>
 <img src="docs/images/review.jpg" width="190" alt="One photo at a time">
@@ -300,7 +418,7 @@ From left to right: one photo at a time, dragging left to **Clear** (the photo c
 
 The final screen after reviewing all 12 photos, and the Home screen in Dark Mode.
 
-## 8. Problems I had and how I solved them
+## 10. Problems I had and how I solved them
 
 - **The old photo came back for a moment.** After the last decision, the photo I had just swiped appeared again during the transition. The reason was that the position of the card was shared between the old and the new photo. I fixed it by drawing the leaving photo as a separate view that animates on its own.
 - **The top bar jumped between screens.** I replaced the standard navigation with my own `RootView` that switches between the screens, so every transition is controlled by me.
@@ -310,7 +428,7 @@ The final screen after reviewing all 12 photos, and the Home screen in Dark Mode
 - **With very big text, the main button went off the screen.** I pinned the button to the bottom and made the rest of the screen scrollable.
 - **The name.** "Roomy" was already taken by a similar app, so I chose Clearing.
 
-## 9. How to run it
+## 11. How to run it
 
 1. Open `Clearing.xcodeproj` in Xcode.
 2. Choose an iPhone simulator at the top (for example iPhone 17 Pro).
@@ -318,7 +436,7 @@ The final screen after reviewing all 12 photos, and the Home screen in Dark Mode
 
 To run it on a real iPhone, select the **Clearing** target, go to **Signing & Capabilities** and choose your own team.
 
-## 10. What comes next
+## 12. What comes next
 
 This structure makes the next labs easier:
 
@@ -329,7 +447,7 @@ This structure makes the next labs easier:
 - **Command** pattern: an Undo button for Keep and Clear.
 - **Observer, Adapter, Decorator** and the remaining SOLID principles (Liskov and Interface Segregation).
 
-## 11. Conclusion
+## 13. Conclusion
 
 In this lab I built a working iPhone app and applied three SOLID principles in a way I can actually see in the code. SRP helped me keep every class small and focused. Because of that I could redesign the whole interface twice without touching the logic. OCP showed me how a protocol lets me add new actions without editing the service. DIP made the review logic independent from where the photos come from, so moving to real iPhone photos later will be a small change.
 

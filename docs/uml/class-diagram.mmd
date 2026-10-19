@@ -1,0 +1,82 @@
+classDiagram
+    direction TB
+
+    class ClearingApp {
+        <<struct>>
+        -viewModel: PhotoReviewViewModel
+    }
+
+    class PhotoReviewViewModel {
+        <<final class>>
+        -reviewService: PhotoReviewService
+        -keepAction: KeepPhotoAction
+        -deleteAction: DeletePhotoAction
+        +currentPhoto: Photo?
+        +reviewedCount: Int
+        +keptCount: Int
+        +deletedCount: Int
+        +positionText: String
+        +startReview()
+        +keepCurrentPhoto()
+        +deleteCurrentPhoto()
+        -apply(action: PhotoAction)
+        -refresh()
+    }
+
+    class PhotoReviewService {
+        <<final class>>
+        -repository: PhotoRepository
+        +photos: List~Photo~
+        +reviewedCount: Int
+        +currentPhoto: Photo?
+        +isFinished: Bool
+        +startReview()
+        +apply(action: PhotoAction)
+    }
+
+    class PhotoRepository {
+        <<protocol>>
+        +getPhotos() List~Photo~
+    }
+
+    class LocalPhotoRepository {
+        <<final class>>
+        -samplePhotos: List~Photo~
+        +getPhotos() List~Photo~
+    }
+
+    class PhotoAction {
+        <<protocol>>
+        +execute(on: Photo)
+    }
+
+    class KeepPhotoAction {
+        <<final class>>
+        +keptPhotos: List~Photo~
+        +execute(on: Photo)
+    }
+
+    class DeletePhotoAction {
+        <<final class>>
+        +photosToDelete: List~Photo~
+        +spaceToFree: Int64
+        +execute(on: Photo)
+    }
+
+    class Photo {
+        <<struct>>
+        +id: UUID
+        +imageName: String
+        +sizeInBytes: Int64
+    }
+
+    ClearingApp --> PhotoReviewViewModel : creates
+    PhotoReviewViewModel o-- PhotoReviewService : has
+    PhotoReviewViewModel *-- KeepPhotoAction : has
+    PhotoReviewViewModel *-- DeletePhotoAction : has
+    PhotoReviewService o-- PhotoRepository : depends on
+    PhotoReviewService ..> PhotoAction : uses
+    PhotoRepository <|.. LocalPhotoRepository : implements
+    PhotoAction <|.. KeepPhotoAction : implements
+    PhotoAction <|.. DeletePhotoAction : implements
+    PhotoReviewService --> "0..*" Photo : photos

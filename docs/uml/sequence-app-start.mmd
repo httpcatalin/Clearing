@@ -1,0 +1,15 @@
+sequenceDiagram
+    participant App as ClearingApp
+    participant Repo as LocalPhotoRepository
+    participant Service as PhotoReviewService
+    participant VM as PhotoReviewViewModel
+    participant Root as RootView
+
+    App->>Repo: create
+    App->>Service: init(repository: Repo)
+    Service->>Repo: getPhotos()
+    Repo-->>Service: 12 photos
+    App->>VM: init(reviewService: Service)
+    VM->>VM: refresh()
+    App->>Root: show(viewModel: VM)
+    Root-->>Root: Home shows "12 photos to review"
