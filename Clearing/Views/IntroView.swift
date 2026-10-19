@@ -30,7 +30,7 @@ struct IntroView: View {
         }
         .contentShape(Rectangle())
         .onTapGesture(perform: onFinished)
-        .sensoryFeedback(Haptics.open, trigger: hasOpened) { _, didOpen in
+        .haptic(Haptics.open, trigger: hasOpened) { _, didOpen in
             didOpen
         }
         .accessibilityHidden(true)

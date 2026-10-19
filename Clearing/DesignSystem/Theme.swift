@@ -52,3 +52,15 @@ enum Haptics {
     static let open = SensoryFeedback.impact(flexibility: .soft, intensity: 0.6)
     static let complete = SensoryFeedback.success
 }
+
+extension View {
+    func haptic<Trigger: Equatable>(
+        _ feedback: SensoryFeedback,
+        trigger: Trigger,
+        condition: @escaping (Trigger, Trigger) -> Bool
+    ) -> some View {
+        sensoryFeedback(feedback, trigger: trigger) { oldValue, newValue in
+            ClearingSettings.shared.hapticsEnabled && condition(oldValue, newValue)
+        }
+    }
+}

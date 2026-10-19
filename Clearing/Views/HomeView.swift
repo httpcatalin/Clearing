@@ -8,6 +8,7 @@ struct HomeView: View {
     @State private var isRevealed = false
     @State private var isLeaving = false
     @State private var touch: CGPoint?
+    @Bindable private var settings = ClearingSettings.shared
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
     var body: some View {
@@ -33,10 +34,10 @@ struct HomeView: View {
                     .disabled(isLeaving)
             }
         }
-        .sensoryFeedback(Haptics.touch, trigger: touch != nil) { _, isTouching in
+        .haptic(Haptics.touch, trigger: touch != nil) { _, isTouching in
             isTouching
         }
-        .sensoryFeedback(Haptics.open, trigger: isLeaving) { _, isNowLeaving in
+        .haptic(Haptics.open, trigger: isLeaving) { _, isNowLeaving in
             isNowLeaving
         }
         .onAppear {
@@ -52,15 +53,39 @@ struct HomeView: View {
     }
 
     private var brandHeader: some View {
-        HStack(spacing: 8) {
-            SplitMark(opening: 0.5)
-                .frame(width: 28, height: 28)
+        HStack {
+            HStack(spacing: 8) {
+                SplitMark(opening: 0.5)
+                    .frame(width: 28, height: 28)
 
-            Text("Clearing")
-                .font(Typography.brand)
+                Text("Clearing")
+                    .font(Typography.brand)
+            }
+            .accessibilityElement(children: .combine)
+            .accessibilityAddTraits(.isHeader)
+
+            Spacer()
+
+            settingsMenu
         }
-        .accessibilityElement(children: .combine)
-        .accessibilityAddTraits(.isHeader)
+    }
+
+    private var settingsMenu: some View {
+        Menu {
+            Toggle("Haptic feedback", isOn: $settings.hapticsEnabled)
+
+            Picker("Review style", selection: $settings.reviewMode) {
+                Text("Detailed").tag(ReviewMode.detailed)
+                Text("Compact").tag(ReviewMode.compact)
+            }
+        } label: {
+            Image(systemName: "slider.horizontal.3")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 44, height: 44)
+                .background(Palette.surface, in: Circle())
+        }
+        .accessibilityLabel("Settings")
     }
 
     @ViewBuilder
@@ -154,7 +179,9 @@ private struct EmptyPhotoRepository: PhotoRepository {
 #Preview("Library") {
     HomeView(
         viewModel: PhotoReviewViewModel(
-            reviewService: PhotoReviewService(repository: LocalPhotoRepository())
+            reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
+            keepActionFactory: KeepPhotoActionFactory(),
+            deleteActionFactory: DeletePhotoActionFactory()
         ),
         isActive: true,
         onStart: {}
@@ -164,7 +191,9 @@ private struct EmptyPhotoRepository: PhotoRepository {
 #Preview("Empty") {
     HomeView(
         viewModel: PhotoReviewViewModel(
-            reviewService: PhotoReviewService(repository: EmptyPhotoRepository())
+            reviewService: PhotoReviewService(repository: EmptyPhotoRepository()),
+            keepActionFactory: KeepPhotoActionFactory(),
+            deleteActionFactory: DeletePhotoActionFactory()
         ),
         isActive: true,
         onStart: {}

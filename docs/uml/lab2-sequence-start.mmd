@@ -1,0 +1,28 @@
+sequenceDiagram
+    actor User
+    participant Home as RootView
+    participant VM as PhotoReviewViewModel
+    participant Settings as ClearingSettings.shared
+    participant Service as PhotoReviewService
+    participant Repo as LocalPhotoRepository
+    participant Builder as ReviewSessionBuilder
+    participant Keep as KeepPhotoActionFactory
+    participant Delete as DeletePhotoActionFactory
+
+    User->>Home: taps Start cleaning
+    Home->>VM: startReview()
+    VM->>Settings: reviewMode
+    Settings-->>VM: detailed or compact
+    VM->>Service: startReview(mode:)
+    Service->>Repo: getPhotos()
+    Repo-->>Service: 12 photos
+    Service->>Builder: setPhotos, setStartingIndex(0), setReviewMode(mode)
+    Service->>Builder: build()
+    Builder-->>Service: ReviewSession
+    Service->>Service: start(session)
+    VM->>Keep: makeAction()
+    Keep-->>VM: KeepPhotoAction
+    VM->>Delete: makeAction()
+    Delete-->>VM: DeletePhotoAction
+    VM->>VM: refresh()
+    VM-->>Home: review screen shows the first photo

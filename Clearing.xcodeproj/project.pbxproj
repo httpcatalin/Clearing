@@ -6,8 +6,20 @@
 	objectVersion = 77;
 	objects = {
 
+/* Begin PBXContainerItemProxy section */
+		C5A000000000000000000020 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = C5A000000000000000000009 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = C5A000000000000000000008;
+			remoteInfo = Clearing;
+		};
+/* End PBXContainerItemProxy section */
+
 /* Begin PBXFileReference section */
 		C5A000000000000000000011 /* lab1.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = lab1.md; sourceTree = "<group>"; };
+		C5A000000000000000000012 /* lab2.md */ = {isa = PBXFileReference; lastKnownFileType = net.daringfireball.markdown; path = lab2.md; sourceTree = "<group>"; };
+		C5A000000000000000000021 /* ClearingTests.xctest */ = {isa = PBXFileReference; explicitFileType = wrapper.cfbundle; includeInIndex = 0; path = ClearingTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
 		C5A000000000000000000001 /* Clearing.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = Clearing.app; sourceTree = BUILT_PRODUCTS_DIR; };
 /* End PBXFileReference section */
 
@@ -17,10 +29,22 @@
 			path = Clearing;
 			sourceTree = "<group>";
 		};
+		C5A000000000000000000022 /* ClearingTests */ = {
+			isa = PBXFileSystemSynchronizedRootGroup;
+			path = ClearingTests;
+			sourceTree = "<group>";
+		};
 /* End PBXFileSystemSynchronizedRootGroup section */
 
 /* Begin PBXFrameworksBuildPhase section */
 		C5A000000000000000000006 /* Frameworks */ = {
+			isa = PBXFrameworksBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C5A000000000000000000023 /* Frameworks */ = {
 			isa = PBXFrameworksBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -34,7 +58,9 @@
 			isa = PBXGroup;
 			children = (
 				C5A000000000000000000011 /* lab1.md */,
+				C5A000000000000000000012 /* lab2.md */,
 				C5A000000000000000000002 /* Clearing */,
+				C5A000000000000000000022 /* ClearingTests */,
 				C5A000000000000000000004 /* Products */,
 			);
 			sourceTree = "<group>";
@@ -43,6 +69,7 @@
 			isa = PBXGroup;
 			children = (
 				C5A000000000000000000001 /* Clearing.app */,
+				C5A000000000000000000021 /* ClearingTests.xctest */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -72,6 +99,29 @@
 			productReference = C5A000000000000000000001 /* Clearing.app */;
 			productType = "com.apple.product-type.application";
 		};
+		C5A000000000000000000026 /* ClearingTests */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = C5A000000000000000000027 /* Build configuration list for PBXNativeTarget "ClearingTests" */;
+			buildPhases = (
+				C5A000000000000000000025 /* Sources */,
+				C5A000000000000000000023 /* Frameworks */,
+				C5A000000000000000000024 /* Resources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+				C5A000000000000000000028 /* PBXTargetDependency */,
+			);
+			fileSystemSynchronizedGroups = (
+				C5A000000000000000000022 /* ClearingTests */,
+			);
+			name = ClearingTests;
+			packageProductDependencies = (
+			);
+			productName = ClearingTests;
+			productReference = C5A000000000000000000021 /* ClearingTests.xctest */;
+			productType = "com.apple.product-type.bundle.unit-test";
+		};
 /* End PBXNativeTarget section */
 
 /* Begin PBXProject section */
@@ -84,6 +134,10 @@
 				TargetAttributes = {
 					C5A000000000000000000008 = {
 						CreatedOnToolsVersion = 27.0;
+					};
+					C5A000000000000000000026 = {
+						CreatedOnToolsVersion = 27.0;
+						TestTargetID = C5A000000000000000000008;
 					};
 				};
 			};
@@ -102,12 +156,20 @@
 			projectRoot = "";
 			targets = (
 				C5A000000000000000000008 /* Clearing */,
+				C5A000000000000000000026 /* ClearingTests */,
 			);
 		};
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
 		C5A000000000000000000007 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		C5A000000000000000000024 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
@@ -124,7 +186,22 @@
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
+		C5A000000000000000000025 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 /* End PBXSourcesBuildPhase section */
+
+/* Begin PBXTargetDependency section */
+		C5A000000000000000000028 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = C5A000000000000000000008 /* Clearing */;
+			targetProxy = C5A000000000000000000020 /* PBXContainerItemProxy */;
+		};
+/* End PBXTargetDependency section */
 
 /* Begin XCBuildConfiguration section */
 		C5A00000000000000000000C /* Debug */ = {
@@ -272,6 +349,42 @@
 			};
 			name = Release;
 		};
+		C5A000000000000000000029 /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tmps.ClearingTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clearing.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Clearing";
+			};
+			name = Debug;
+		};
+		C5A00000000000000000002A /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				BUNDLE_LOADER = "$(TEST_HOST)";
+				CODE_SIGN_STYLE = Automatic;
+				CURRENT_PROJECT_VERSION = 1;
+				GENERATE_INFOPLIST_FILE = YES;
+				IPHONEOS_DEPLOYMENT_TARGET = 17.0;
+				MARKETING_VERSION = 1.0;
+				PRODUCT_BUNDLE_IDENTIFIER = com.tmps.ClearingTests;
+				PRODUCT_NAME = "$(TARGET_NAME)";
+				SWIFT_EMIT_LOC_STRINGS = NO;
+				SWIFT_VERSION = 5.0;
+				TARGETED_DEVICE_FAMILY = 1;
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Clearing.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/Clearing";
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -289,6 +402,15 @@
 			buildConfigurations = (
 				C5A00000000000000000000E /* Debug */,
 				C5A00000000000000000000F /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Release;
+		};
+		C5A000000000000000000027 /* Build configuration list for PBXNativeTarget "ClearingTests" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				C5A000000000000000000029 /* Debug */,
+				C5A00000000000000000002A /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Release;

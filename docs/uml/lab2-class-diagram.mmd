@@ -1,0 +1,88 @@
+classDiagram
+    direction TB
+
+    class ClearingApp {
+        <<struct>>
+    }
+
+    class ClearingSettings {
+        <<Singleton>>
+        +shared: ClearingSettings$
+        +hapticsEnabled: Bool
+        +reviewMode: ReviewMode
+    }
+
+    class PhotoReviewViewModel {
+        <<final class>>
+        -reviewService: PhotoReviewService
+        -keepActionFactory: PhotoActionFactory
+        -deleteActionFactory: PhotoActionFactory
+        +startReview()
+        +keepCurrentPhoto()
+        +deleteCurrentPhoto()
+    }
+
+    class PhotoReviewService {
+        <<final class>>
+        -repository: PhotoRepository
+        +startReview(mode: ReviewMode)
+        +start(session: ReviewSession)
+        +apply(action: PhotoAction)
+    }
+
+    class ReviewSessionBuilder {
+        <<Builder>>
+        +setPhotos(photos)
+        +setStartingIndex(index)
+        +setReviewMode(mode)
+        +build() ReviewSession
+    }
+
+    class ReviewSession {
+        <<struct>>
+        +photos: List~Photo~
+        +startIndex: Int
+        +mode: ReviewMode
+    }
+
+    class PhotoRepository {
+        <<protocol>>
+        +getPhotos() List~Photo~
+    }
+
+    class LocalPhotoRepository {
+        <<final class>>
+    }
+
+    class PhotoActionFactory {
+        <<protocol>>
+        +makeAction() PhotoAction
+    }
+
+    class KeepPhotoActionFactory
+    class DeletePhotoActionFactory
+
+    class PhotoAction {
+        <<protocol>>
+        +handledPhotos: List~Photo~
+        +execute(on: Photo)
+    }
+
+    class KeepPhotoAction
+    class DeletePhotoAction
+
+    ClearingApp --> PhotoReviewViewModel : creates
+    PhotoReviewViewModel ..> ClearingSettings : reads reviewMode
+    PhotoReviewViewModel o-- PhotoReviewService
+    PhotoReviewViewModel o-- PhotoActionFactory
+    PhotoReviewService o-- PhotoRepository
+    PhotoReviewService ..> ReviewSessionBuilder : uses
+    ReviewSessionBuilder ..> ReviewSession : builds
+    PhotoReviewService ..> PhotoAction : uses
+    PhotoRepository <|.. LocalPhotoRepository
+    PhotoActionFactory <|.. KeepPhotoActionFactory
+    PhotoActionFactory <|.. DeletePhotoActionFactory
+    PhotoAction <|.. KeepPhotoAction
+    PhotoAction <|.. DeletePhotoAction
+    KeepPhotoActionFactory ..> KeepPhotoAction : creates
+    DeletePhotoActionFactory ..> DeletePhotoAction : creates

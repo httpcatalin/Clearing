@@ -1,0 +1,37 @@
+classDiagram
+    direction TB
+
+    class ClearingSettings {
+        <<Singleton>>
+        +shared: ClearingSettings$
+        +hapticsEnabled: Bool
+        +reviewMode: ReviewMode
+        -init()
+    }
+
+    class ReviewMode {
+        <<enumeration>>
+        detailed
+        compact
+    }
+
+    class HomeView {
+        <<view>>
+        -settings: ClearingSettings
+        -settingsMenu
+    }
+
+    class View {
+        <<extension>>
+        +haptic(feedback, trigger, condition)
+    }
+
+    class PhotoReviewViewModel {
+        +startReview()
+    }
+
+    ClearingSettings --> ClearingSettings : shared
+    ClearingSettings --> ReviewMode
+    HomeView ..> ClearingSettings : changes the settings
+    View ..> ClearingSettings : reads hapticsEnabled
+    PhotoReviewViewModel ..> ClearingSettings : reads reviewMode

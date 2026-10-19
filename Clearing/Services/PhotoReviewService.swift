@@ -5,6 +5,7 @@ final class PhotoReviewService {
 
     private(set) var photos: [Photo] = []
     private(set) var reviewedCount = 0
+    private(set) var mode: ReviewMode = .detailed
 
     init(repository: PhotoRepository) {
         self.repository = repository
@@ -19,9 +20,19 @@ final class PhotoReviewService {
         reviewedCount >= photos.count
     }
 
-    func startReview() {
-        photos = repository.getPhotos()
-        reviewedCount = 0
+    func startReview(mode: ReviewMode = .detailed) {
+        let session = ReviewSessionBuilder()
+            .setPhotos(repository.getPhotos())
+            .setStartingIndex(0)
+            .setReviewMode(mode)
+            .build()
+        start(session)
+    }
+
+    func start(_ session: ReviewSession) {
+        photos = session.photos
+        reviewedCount = session.startIndex
+        mode = session.mode
     }
 
     func apply(_ action: PhotoAction) {

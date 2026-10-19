@@ -10,13 +10,24 @@ final class PhotoReviewViewModel {
     private(set) var deletedCount = 0
     private(set) var spaceToFree: Int64 = 0
     private(set) var removedPhotoIDs: Set<Photo.ID> = []
+    private(set) var reviewMode: ReviewMode = .detailed
 
     private let reviewService: PhotoReviewService
-    private var keepAction = KeepPhotoAction()
-    private var deleteAction = DeletePhotoAction()
+    private let keepActionFactory: PhotoActionFactory
+    private let deleteActionFactory: PhotoActionFactory
+    private var keepAction: PhotoAction
+    private var deleteAction: PhotoAction
 
-    init(reviewService: PhotoReviewService) {
+    init(
+        reviewService: PhotoReviewService,
+        keepActionFactory: PhotoActionFactory,
+        deleteActionFactory: PhotoActionFactory
+    ) {
         self.reviewService = reviewService
+        self.keepActionFactory = keepActionFactory
+        self.deleteActionFactory = deleteActionFactory
+        keepAction = keepActionFactory.makeAction()
+        deleteAction = deleteActionFactory.makeAction()
         refresh()
     }
 
@@ -77,9 +88,9 @@ final class PhotoReviewViewModel {
     }
 
     func startReview() {
-        reviewService.startReview()
-        keepAction = KeepPhotoAction()
-        deleteAction = DeletePhotoAction()
+        reviewService.startReview(mode: ClearingSettings.shared.reviewMode)
+        keepAction = keepActionFactory.makeAction()
+        deleteAction = deleteActionFactory.makeAction()
         refresh()
     }
 
@@ -100,10 +111,11 @@ final class PhotoReviewViewModel {
         photos = reviewService.photos
         currentPhoto = reviewService.currentPhoto
         reviewedCount = reviewService.reviewedCount
-        keptCount = keepAction.keptPhotos.count
-        deletedCount = deleteAction.photosToDelete.count
-        spaceToFree = deleteAction.spaceToFree
-        removedPhotoIDs = Set(deleteAction.photosToDelete.map(\.id))
+        reviewMode = reviewService.mode
+        keptCount = keepAction.handledPhotos.count
+        deletedCount = deleteAction.handledPhotos.count
+        spaceToFree = deleteAction.handledPhotos.reduce(0) { total, photo in total + photo.sizeInBytes }
+        removedPhotoIDs = Set(deleteAction.handledPhotos.map(\.id))
     }
 
     private var currentPosition: Int {

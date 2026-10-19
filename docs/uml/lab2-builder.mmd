@@ -1,0 +1,38 @@
+classDiagram
+    direction TB
+
+    class PhotoReviewService {
+        <<client>>
+        +startReview(mode: ReviewMode)
+        +start(session: ReviewSession)
+    }
+
+    class ReviewSessionBuilder {
+        <<Builder>>
+        -photos: List~Photo~
+        -startIndex: Int
+        -mode: ReviewMode
+        +setPhotos(photos) ReviewSessionBuilder
+        +setStartingIndex(index) ReviewSessionBuilder
+        +setReviewMode(mode) ReviewSessionBuilder
+        +build() ReviewSession
+        -validStartIndex: Int
+    }
+
+    class ReviewSession {
+        <<Product, struct>>
+        +photos: List~Photo~
+        +startIndex: Int
+        +mode: ReviewMode
+    }
+
+    class ReviewMode {
+        <<enumeration>>
+        detailed
+        compact
+    }
+
+    PhotoReviewService ..> ReviewSessionBuilder : uses step by step
+    ReviewSessionBuilder ..> ReviewSession : builds
+    PhotoReviewService ..> ReviewSession : starts
+    ReviewSession --> ReviewMode

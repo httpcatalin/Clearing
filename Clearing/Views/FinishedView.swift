@@ -50,7 +50,7 @@ struct FinishedView: View {
             PrimaryButton(title: "Done", systemImage: "checkmark", action: onDone)
                 .modifier(RevealOnOpen(isOpen: isOpen, reduceMotion: reduceMotion))
         }
-        .sensoryFeedback(Haptics.complete, trigger: isOpen) { _, isNowOpen in
+        .haptic(Haptics.complete, trigger: isOpen) { _, isNowOpen in
             isNowOpen
         }
         .task {
@@ -80,7 +80,9 @@ private struct RevealOnOpen: ViewModifier {
 
 private func previewViewModel() -> PhotoReviewViewModel {
     let viewModel = PhotoReviewViewModel(
-        reviewService: PhotoReviewService(repository: LocalPhotoRepository())
+        reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
+        keepActionFactory: KeepPhotoActionFactory(),
+        deleteActionFactory: DeletePhotoActionFactory()
     )
     for index in 0..<viewModel.totalCount {
         if index % 3 == 1 {

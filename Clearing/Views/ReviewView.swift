@@ -36,16 +36,16 @@ struct ReviewView: View {
         .frame(maxWidth: .infinity, maxHeight: .infinity)
         .background(Palette.canvas.ignoresSafeArea())
         .coordinateSpace(name: coordinateSpace)
-        .sensoryFeedback(Haptics.touch, trigger: isDragging) { _, isNowDragging in
+        .haptic(Haptics.touch, trigger: isDragging) { _, isNowDragging in
             isNowDragging
         }
-        .sensoryFeedback(Haptics.threshold, trigger: isPastThreshold) { _, isPast in
+        .haptic(Haptics.threshold, trigger: isPastThreshold) { _, isPast in
             isPast
         }
-        .sensoryFeedback(Haptics.keep, trigger: viewModel.keptCount) { old, new in
+        .haptic(Haptics.keep, trigger: viewModel.keptCount) { old, new in
             new > old
         }
-        .sensoryFeedback(Haptics.clear, trigger: viewModel.deletedCount) { old, new in
+        .haptic(Haptics.clear, trigger: viewModel.deletedCount) { old, new in
             new > old
         }
         .task {
@@ -63,7 +63,9 @@ struct ReviewView: View {
                 .padding(.top, 18)
                 .padding(.bottom, 34)
 
-            photoDetails
+            if viewModel.reviewMode == .detailed {
+                photoDetails
+            }
 
             decisionButtons
                 .padding(.horizontal, 20)
@@ -470,7 +472,9 @@ private extension View {
 #Preview {
     ReviewView(
         viewModel: PhotoReviewViewModel(
-            reviewService: PhotoReviewService(repository: LocalPhotoRepository())
+            reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
+            keepActionFactory: KeepPhotoActionFactory(),
+            deleteActionFactory: DeletePhotoActionFactory()
         ),
         onClose: {}
     )

@@ -1,0 +1,54 @@
+classDiagram
+    direction TB
+
+    class ClearingApp {
+        <<composition root>>
+    }
+
+    class PhotoReviewViewModel {
+        <<Client>>
+        -keepActionFactory: PhotoActionFactory
+        -deleteActionFactory: PhotoActionFactory
+        +startReview()
+    }
+
+    class PhotoActionFactory {
+        <<protocol, Creator>>
+        +makeAction() PhotoAction
+    }
+
+    class KeepPhotoActionFactory {
+        <<Concrete Creator>>
+        +makeAction() PhotoAction
+    }
+
+    class DeletePhotoActionFactory {
+        <<Concrete Creator>>
+        +makeAction() PhotoAction
+    }
+
+    class PhotoAction {
+        <<protocol, Product>>
+        +handledPhotos: List~Photo~
+        +execute(on: Photo)
+    }
+
+    class KeepPhotoAction {
+        <<Concrete Product>>
+        +execute(on: Photo)
+    }
+
+    class DeletePhotoAction {
+        <<Concrete Product>>
+        +execute(on: Photo)
+    }
+
+    ClearingApp ..> KeepPhotoActionFactory : injects
+    ClearingApp ..> DeletePhotoActionFactory : injects
+    PhotoReviewViewModel --> PhotoActionFactory : asks for actions
+    PhotoActionFactory <|.. KeepPhotoActionFactory
+    PhotoActionFactory <|.. DeletePhotoActionFactory
+    KeepPhotoActionFactory ..> KeepPhotoAction : creates
+    DeletePhotoActionFactory ..> DeletePhotoAction : creates
+    PhotoAction <|.. KeepPhotoAction
+    PhotoAction <|.. DeletePhotoAction
