@@ -14,6 +14,7 @@ struct ReviewView: View {
     @State private var stackFrame: CGRect = .zero
     @State private var keepButtonFrame: CGRect = .zero
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.scenePhase) private var scenePhase
 
     private let decisionThreshold: CGFloat = 110
     private let coordinateSpace = "review"
@@ -48,6 +49,19 @@ struct ReviewView: View {
         .haptic(Haptics.clear, trigger: viewModel.deletedCount) { old, new in
             new > old
         }
+        .haptic(Haptics.touch, trigger: viewModel.reviewedCount) { old, new in
+            new < old
+        }
+        .onChange(of: viewModel.isFinished) { _, isNowFinished in
+            if isNowFinished {
+                finish()
+            }
+        }
+        .onChange(of: scenePhase) { _, newPhase in
+            if newPhase == .background {
+                pause()
+            }
+        }
         .task {
             await playSwipeHint()
         }
@@ -67,9 +81,16 @@ struct ReviewView: View {
                 photoDetails
             }
 
-            decisionButtons
-                .padding(.horizontal, 20)
-                .padding(.top, 18)
+            Group {
+                if viewModel.isPaused {
+                    PrimaryButton(title: "Resume", systemImage: "play.fill", action: resume)
+                } else {
+                    decisionButtons
+                }
+            }
+            .transition(.opacity)
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
         }
         .padding(.bottom, 12)
     }
@@ -96,8 +117,21 @@ struct ReviewView: View {
 
             Spacer()
 
-            Color.clear
-                .frame(width: 44, height: 44)
+            if viewModel.isPaused {
+                Color.clear
+                    .frame(width: 44, height: 44)
+            } else {
+                Button(action: pause) {
+                    Image(systemName: "pause.fill")
+                        .font(.body.weight(.semibold))
+                        .foregroundStyle(.primary)
+                        .frame(width: 44, height: 44)
+                        .background(Palette.surface, in: Circle())
+                }
+                .buttonStyle(PressableButtonStyle())
+                .disabled(!viewModel.canDecide)
+                .accessibilityLabel("Pause")
+            }
         }
         .padding(.horizontal, 16)
         .padding(.top, 4)
@@ -120,6 +154,14 @@ struct ReviewView: View {
                 .zIndex(1)
             }
         }
+        .compositingGroup()
+        .opacity(viewModel.isPaused ? 0.4 : 1)
+        .overlay {
+            if viewModel.isPaused {
+                PausedBadge()
+                    .transition(.opacity)
+            }
+        }
         .frame(maxWidth: .infinity, maxHeight: .infinity)
     }
 
@@ -134,14 +176,14 @@ struct ReviewView: View {
             .rotationEffect(.degrees(spin), anchor: .bottom)
             .modifier(RiseInOnAppear(reduceMotion: reduceMotion))
             .zIndex(Double(-depth))
-            .allowsHitTesting(isTop)
+            .allowsHitTesting(isTop && viewModel.canDecide)
             .gesture(dragGesture)
             .accessibilityElement(children: .ignore)
             .accessibilityLabel("\(viewModel.positionAccessibilityText), \(viewModel.currentSizeText)")
             .accessibilityHint("Swipe right to keep, swipe left to clear")
             .accessibilityAction(named: "Keep") { commit(.keep) }
             .accessibilityAction(named: "Clear") { commit(.clear) }
-            .accessibilityHidden(!isTop)
+            .accessibilityHidden(!isTop || viewModel.isPaused)
     }
 
     private func cardAppearance(_ photo: Photo, isTop: Bool, layer: CGFloat) -> some View {
@@ -182,7 +224,7 @@ struct ReviewView: View {
                 .foregroundStyle(.tertiary)
                 .opacity(viewModel.reviewedCount == 0 ? 1 : 0)
         }
-        .opacity(viewModel.isFinished ? 0 : 1)
+        .opacity(viewModel.canDecide ? 1 : 0)
         .animation(.easeInOut(duration: 0.3), value: viewModel.reviewedCount)
         .accessibilityHidden(true)
     }
@@ -193,18 +235,36 @@ struct ReviewView: View {
                 commit(.clear)
             }
 
+            undoButton
+
             DecisionButton(choice: .keep, emphasis: emphasis(for: .keep), arrivals: keepArrivals) {
                 commit(.keep)
             }
             .readFrame(in: coordinateSpace, into: $keepButtonFrame)
         }
-        .disabled(viewModel.isFinished)
+        .disabled(!viewModel.canDecide)
         .dynamicTypeSize(...DynamicTypeSize.accessibility2)
+    }
+
+    private var undoButton: some View {
+        Button(action: undo) {
+            Image(systemName: "arrow.uturn.backward")
+                .font(.body.weight(.semibold))
+                .foregroundStyle(.primary)
+                .frame(width: 58, height: 58)
+                .background(Palette.surface, in: Circle())
+        }
+        .buttonStyle(PressableButtonStyle())
+        .disabled(!viewModel.canUndo)
+        .opacity(viewModel.canUndo ? 1 : 0.35)
+        .accessibilityLabel("Undo")
+        .accessibilityHint("Brings back the last photo")
     }
 
     private var dragGesture: some Gesture {
         DragGesture(minimumDistance: 10)
             .onChanged { value in
+                guard viewModel.canDecide else { return }
                 hasInteracted = true
                 if !isDragging {
                     isDragging = true
@@ -255,7 +315,7 @@ struct ReviewView: View {
     }
 
     private func commit(_ choice: ReviewChoice) {
-        guard let photo = viewModel.currentPhoto else { return }
+        guard viewModel.canDecide, let photo = viewModel.currentPhoto else { return }
         hasInteracted = true
 
         departingCards.append(
@@ -269,9 +329,27 @@ struct ReviewView: View {
         case .clear:
             viewModel.deleteCurrentPhoto()
         }
+    }
 
-        if viewModel.isFinished {
-            finish()
+    private func undo() {
+        withAnimation(Motion.promote) {
+            viewModel.undoLastDecision()
+            departingCards.removeAll { $0.photo.id == viewModel.currentPhoto?.id }
+        }
+    }
+
+    private func pause() {
+        hasInteracted = true
+        isDragging = false
+        withAnimation(Motion.gesture) {
+            dragOffset = .zero
+            viewModel.pauseReview()
+        }
+    }
+
+    private func resume() {
+        withAnimation(Motion.gesture) {
+            viewModel.resumeReview()
         }
     }
 
@@ -360,6 +438,23 @@ private struct DecisionBadge: View {
             .opacity(Double(progress))
             .animation(Motion.micro, value: isCommitted)
         }
+    }
+}
+
+private struct PausedBadge: View {
+    var body: some View {
+        HStack(spacing: 6) {
+            Image(systemName: "pause.fill")
+                .accessibilityHidden(true)
+
+            Text("PAUSED")
+                .tracking(1.2)
+        }
+        .font(Typography.badge)
+        .foregroundStyle(Palette.onInk)
+        .padding(.horizontal, 14)
+        .padding(.vertical, 8)
+        .background(Palette.ink, in: Capsule())
     }
 }
 

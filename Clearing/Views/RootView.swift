@@ -38,6 +38,7 @@ struct RootView: View {
     }
 
     private func returnHome() {
+        viewModel.closeReview()
         withAnimation(Motion.navigation) {
             screen = .home
         }

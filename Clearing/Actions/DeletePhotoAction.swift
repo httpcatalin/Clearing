@@ -10,4 +10,8 @@ final class DeletePhotoAction: PhotoAction {
     func execute(on photo: Photo) {
         photosToDelete.append(photo)
     }
+
+    func undo(on photo: Photo) {
+        photosToDelete.removeAll { $0.id == photo.id }
+    }
 }

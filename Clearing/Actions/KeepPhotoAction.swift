@@ -10,4 +10,8 @@ final class KeepPhotoAction: PhotoAction {
     func execute(on photo: Photo) {
         keptPhotos.append(photo)
     }
+
+    func undo(on photo: Photo) {
+        keptPhotos.removeAll { $0.id == photo.id }
+    }
 }

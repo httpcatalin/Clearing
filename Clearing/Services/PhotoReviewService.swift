@@ -41,6 +41,13 @@ final class PhotoReviewService {
         reviewedCount += 1
     }
 
+    func undo(_ action: PhotoAction) {
+        guard reviewedCount > 0 else { return }
+        reviewedCount -= 1
+        guard let photo = currentPhoto else { return }
+        action.undo(on: photo)
+    }
+
     private func photo(at index: Int) -> Photo? {
         photos.indices.contains(index) ? photos[index] : nil
     }

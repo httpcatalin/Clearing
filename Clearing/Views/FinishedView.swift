@@ -84,6 +84,7 @@ private func previewViewModel() -> PhotoReviewViewModel {
         keepActionFactory: KeepPhotoActionFactory(),
         deleteActionFactory: DeletePhotoActionFactory()
     )
+    viewModel.startReview()
     for index in 0..<viewModel.totalCount {
         if index % 3 == 1 {
             viewModel.deleteCurrentPhoto()

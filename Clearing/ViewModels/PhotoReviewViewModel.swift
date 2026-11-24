@@ -6,6 +6,11 @@ final class PhotoReviewViewModel {
     private(set) var photos: [Photo] = []
     private(set) var currentPhoto: Photo?
     private(set) var reviewedCount = 0
+    private(set) var progress: Double = 0
+    private(set) var isFinished = false
+    private(set) var isPaused = false
+    private(set) var canDecide = false
+    private(set) var canUndo = false
     private(set) var keptCount = 0
     private(set) var deletedCount = 0
     private(set) var spaceToFree: Int64 = 0
@@ -17,6 +22,10 @@ final class PhotoReviewViewModel {
     private let deleteActionFactory: PhotoActionFactory
     private var keepAction: PhotoAction
     private var deleteAction: PhotoAction
+    private let subject = ReviewSessionSubject()
+    private let progressObserver = ReviewProgressObserver()
+    private let statisticsObserver = ReviewStatisticsObserver()
+    private let session: ReviewSessionContext
 
     init(
         reviewService: PhotoReviewService,
@@ -28,6 +37,9 @@ final class PhotoReviewViewModel {
         self.deleteActionFactory = deleteActionFactory
         keepAction = keepActionFactory.makeAction()
         deleteAction = deleteActionFactory.makeAction()
+        session = ReviewSessionContext(reviewService: reviewService, subject: subject)
+        subject.attach(progressObserver)
+        subject.attach(statisticsObserver)
         refresh()
     }
 
@@ -39,20 +51,12 @@ final class PhotoReviewViewModel {
         !photos.isEmpty
     }
 
-    var isFinished: Bool {
-        currentPhoto == nil
-    }
-
     var upcomingPhotos: [Photo] {
         Array(photos.dropFirst(reviewedCount).prefix(3))
     }
 
     var mosaicPhotos: [Photo] {
         Array(photos.prefix(12))
-    }
-
-    var progress: Double {
-        hasPhotos ? Double(reviewedCount) / Double(totalCount) : 0
     }
 
     var librarySummaryText: String {
@@ -88,33 +92,58 @@ final class PhotoReviewViewModel {
     }
 
     func startReview() {
-        reviewService.startReview(mode: ClearingSettings.shared.reviewMode)
+        session.close()
+        session.start(mode: ClearingSettings.shared.reviewMode)
         keepAction = keepActionFactory.makeAction()
         deleteAction = deleteActionFactory.makeAction()
         refresh()
     }
 
     func keepCurrentPhoto() {
-        apply(keepAction)
+        guard let currentPhoto else { return }
+        session.perform(KeepPhotoCommand(photo: currentPhoto, action: keepAction, reviewService: reviewService, subject: subject))
+        refresh()
     }
 
     func deleteCurrentPhoto() {
-        apply(deleteAction)
+        guard let currentPhoto else { return }
+        session.perform(DeletePhotoCommand(photo: currentPhoto, action: deleteAction, reviewService: reviewService, subject: subject))
+        refresh()
     }
 
-    private func apply(_ action: PhotoAction) {
-        reviewService.apply(action)
+    func undoLastDecision() {
+        session.undo()
+        refresh()
+    }
+
+    func pauseReview() {
+        session.pause()
+        refresh()
+    }
+
+    func resumeReview() {
+        session.resume()
+        refresh()
+    }
+
+    func closeReview() {
+        session.close()
         refresh()
     }
 
     private func refresh() {
         photos = reviewService.photos
         currentPhoto = reviewService.currentPhoto
-        reviewedCount = reviewService.reviewedCount
         reviewMode = reviewService.mode
-        keptCount = keepAction.handledPhotos.count
-        deletedCount = deleteAction.handledPhotos.count
-        spaceToFree = deleteAction.handledPhotos.reduce(0) { total, photo in total + photo.sizeInBytes }
+        isPaused = session.isPaused
+        canDecide = session.canDecide
+        canUndo = session.canUndo
+        reviewedCount = progressObserver.reviewedCount
+        progress = progressObserver.progress
+        isFinished = progressObserver.isComplete
+        keptCount = statisticsObserver.keptCount
+        deletedCount = statisticsObserver.deletedCount
+        spaceToFree = statisticsObserver.spaceToFree
         removedPhotoIDs = Set(deleteAction.handledPhotos.map(\.id))
     }
 
