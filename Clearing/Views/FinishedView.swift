@@ -80,9 +80,12 @@ private struct RevealOnOpen: ViewModifier {
 
 private func previewViewModel() -> PhotoReviewViewModel {
     let viewModel = PhotoReviewViewModel(
-        reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
-        keepActionFactory: KeepPhotoActionFactory(),
-        deleteActionFactory: DeletePhotoActionFactory()
+        facade: PhotoReviewFacade(
+            libraryRepository: LocalPhotoRepository(),
+            archiveRepository: LegacyPhotoRepositoryAdapter(provider: LegacyPhotoProvider()),
+            keepActionFactory: KeepPhotoActionFactory(),
+            deleteActionFactory: DeletePhotoActionFactory()
+        )
     )
     viewModel.startReview()
     for index in 0..<viewModel.totalCount {

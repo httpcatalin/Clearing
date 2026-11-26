@@ -1,0 +1,29 @@
+sequenceDiagram
+    actor User
+    participant View as ReviewView
+    participant VM as PhotoReviewViewModel
+    participant Facade as PhotoReviewFacade
+    participant Session as ReviewSessionContext + ReviewingState
+    participant Cmd as KeepPhotoCommand
+    participant Service as PhotoReviewService
+    participant Haptic as HapticPhotoActionDecorator
+    participant Log as LoggingPhotoActionDecorator
+    participant Keep as KeepPhotoAction
+
+    User->>View: taps Keep
+    View->>VM: keepCurrentPhoto()
+    VM->>Facade: keepCurrentPhoto()
+    Facade->>Facade: decorate(keepAction)
+    Facade->>Session: perform(KeepPhotoCommand)
+    Session->>Cmd: execute() through PhotoCommandManager
+    Cmd->>Service: apply(decorated action)
+    Service->>Haptic: execute(on: photo)
+    Haptic->>Log: super.execute(on: photo)
+    Log->>Keep: super.execute(on: photo)
+    Keep-->>Log: photo kept, once
+    Log->>Log: print "Keep sample-09"
+    Log-->>Haptic: done
+    Haptic->>Haptic: vibrate if hapticsEnabled
+    Cmd->>Cmd: subject.notify(.photoKept)
+    VM->>Facade: refresh() reads the numbers
+    VM-->>View: next photo, 2 / 8

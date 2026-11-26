@@ -1,0 +1,24 @@
+sequenceDiagram
+    actor User
+    participant Home as HomeView
+    participant Settings as ClearingSettings.shared
+    participant VM as PhotoReviewViewModel
+    participant Facade as PhotoReviewFacade
+    participant Service as PhotoReviewService
+    participant Builder as ReviewSessionBuilder
+    participant Adapter as LegacyPhotoRepositoryAdapter
+    participant Legacy as LegacyPhotoProvider
+
+    User->>Home: menu, Old archive
+    Home->>Settings: photoSource = .archive
+    Home->>VM: selectSource(.archive)
+    VM->>Facade: selectSource(.archive)
+    Facade->>Facade: session.close()
+    Facade->>Service: changeRepository(to: archiveRepository)
+    Service->>Adapter: getPhotos()
+    Adapter->>Legacy: fetchArchivedPhotos()
+    Legacy-->>Adapter: 8 LegacyPhoto (fileName, kilobytes)
+    Adapter-->>Service: 8 Photo (imageName, sizeInBytes)
+    Service->>Builder: setPhotos, setStartingIndex(0), setReviewMode, build()
+    Builder-->>Service: ReviewSession
+    VM-->>Home: 8 photos to review, 31.7 MB

@@ -53,9 +53,12 @@ struct RootView: View {
 #Preview {
     RootView(
         viewModel: PhotoReviewViewModel(
-            reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
-            keepActionFactory: KeepPhotoActionFactory(),
-            deleteActionFactory: DeletePhotoActionFactory()
+            facade: PhotoReviewFacade(
+                libraryRepository: LocalPhotoRepository(),
+                archiveRepository: LegacyPhotoRepositoryAdapter(provider: LegacyPhotoProvider()),
+                keepActionFactory: KeepPhotoActionFactory(),
+                deleteActionFactory: DeletePhotoActionFactory()
+            )
         )
     )
 }

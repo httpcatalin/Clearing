@@ -1,7 +1,7 @@
 import Foundation
 
 final class PhotoReviewService {
-    private let repository: PhotoRepository
+    private var repository: PhotoRepository
 
     private(set) var photos: [Photo] = []
     private(set) var reviewedCount = 0
@@ -27,6 +27,11 @@ final class PhotoReviewService {
             .setReviewMode(mode)
             .build()
         start(session)
+    }
+
+    func changeRepository(to newRepository: PhotoRepository) {
+        repository = newRepository
+        startReview(mode: mode)
     }
 
     func start(_ session: ReviewSession) {

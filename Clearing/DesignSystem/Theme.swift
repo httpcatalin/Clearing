@@ -47,10 +47,16 @@ enum Motion {
 enum Haptics {
     static let touch = SensoryFeedback.impact(weight: .light, intensity: 0.5)
     static let threshold = SensoryFeedback.impact(weight: .medium)
-    static let keep = SensoryFeedback.impact(flexibility: .soft, intensity: 0.8)
-    static let clear = SensoryFeedback.impact(flexibility: .rigid, intensity: 0.7)
     static let open = SensoryFeedback.impact(flexibility: .soft, intensity: 0.6)
     static let complete = SensoryFeedback.success
+
+    static func playKeep() {
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred(intensity: 0.8)
+    }
+
+    static func playClear() {
+        UIImpactFeedbackGenerator(style: .rigid).impactOccurred(intensity: 0.7)
+    }
 }
 
 extension View {

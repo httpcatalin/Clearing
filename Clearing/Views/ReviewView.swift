@@ -43,12 +43,6 @@ struct ReviewView: View {
         .haptic(Haptics.threshold, trigger: isPastThreshold) { _, isPast in
             isPast
         }
-        .haptic(Haptics.keep, trigger: viewModel.keptCount) { old, new in
-            new > old
-        }
-        .haptic(Haptics.clear, trigger: viewModel.deletedCount) { old, new in
-            new > old
-        }
         .haptic(Haptics.touch, trigger: viewModel.reviewedCount) { old, new in
             new < old
         }
@@ -567,9 +561,12 @@ private extension View {
 #Preview {
     ReviewView(
         viewModel: PhotoReviewViewModel(
-            reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
-            keepActionFactory: KeepPhotoActionFactory(),
-            deleteActionFactory: DeletePhotoActionFactory()
+            facade: PhotoReviewFacade(
+                libraryRepository: LocalPhotoRepository(),
+                archiveRepository: LegacyPhotoRepositoryAdapter(provider: LegacyPhotoProvider()),
+                keepActionFactory: KeepPhotoActionFactory(),
+                deleteActionFactory: DeletePhotoActionFactory()
+            )
         ),
         onClose: {}
     )

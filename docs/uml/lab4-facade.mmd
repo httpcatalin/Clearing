@@ -1,0 +1,48 @@
+classDiagram
+    direction TB
+
+    class PhotoReviewViewModel {
+        <<client>>
+        -facade: PhotoReviewFacade
+    }
+
+    class PhotoReviewFacade {
+        <<facade>>
+        +selectSource(source: PhotoSource)
+        +startReview(mode: ReviewMode)
+        +keepCurrentPhoto()
+        +deleteCurrentPhoto()
+        +undoLastDecision()
+        +pauseReview()
+        +resumeReview()
+        +closeReview()
+    }
+
+    class PhotoReviewService
+    class PhotoActionFactory {
+        <<protocol>>
+    }
+    class ReviewSessionContext {
+        <<State + Command>>
+    }
+    class ReviewSessionSubject {
+        <<Observer>>
+    }
+    class ReviewProgressObserver
+    class ReviewStatisticsObserver
+    class PhotoActionDecorator {
+        <<Decorator>>
+    }
+    class PhotoRepository {
+        <<protocol>>
+    }
+
+    PhotoReviewViewModel --> PhotoReviewFacade : the only dependency
+    PhotoReviewFacade --> PhotoReviewService
+    PhotoReviewFacade --> PhotoActionFactory : makeAction()
+    PhotoReviewFacade --> ReviewSessionContext : perform, undo, pause
+    PhotoReviewFacade --> ReviewSessionSubject : attach
+    PhotoReviewFacade --> ReviewProgressObserver : reads
+    PhotoReviewFacade --> ReviewStatisticsObserver : reads
+    PhotoReviewFacade ..> PhotoActionDecorator : wraps actions
+    PhotoReviewFacade --> PhotoRepository : library and archive

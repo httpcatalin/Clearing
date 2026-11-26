@@ -2,8 +2,9 @@
 
 Make room for what matters. A calm way to review photos you no longer need.
 
-The Lab 1 report is in [lab1.md](lab1.md). The Lab 2 report is in [lab2.md](lab2.md). Lab 3 is explained in
-[TMPS Lab 3 — Behavioral Design Patterns](#tmps-lab-3--behavioral-design-patterns).
+The Lab 1 report is in [lab1.md](lab1.md). The Lab 2 report is in [lab2.md](lab2.md). The Lab 3 report is in
+[lab3.md](lab3.md). The Lab 4 report is in [lab4.md](lab4.md), and Lab 4 is also explained in
+[Lab 4 — Structural Design Patterns](#lab-4--structural-design-patterns).
 
 ## Lab
 
@@ -12,6 +13,8 @@ TMPS Lab 1 — SOLID principles
 TMPS Lab 2 — Creational design patterns (Singleton, Factory Method, Builder)
 
 TMPS Lab 3 — Behavioral design patterns (Command, Observer, State)
+
+TMPS Lab 4 — Structural design patterns (Adapter, Facade, Decorator)
 
 - Language: Swift
 - UI: SwiftUI
@@ -26,7 +29,8 @@ Intro ──► Home ──► Start cleaning ──► Review ──► Keep / 
 
 1. **Intro** — the logo forms like a photo, opens, and its halves part to reveal Home.
 2. **Home** shows your library as one object made of your photos, with a crack of light
-   running through it. Touch it and it tilts and opens a little.
+   running through it. Touch it and it tilts and opens a little. The menu in the top right
+   corner can switch the photo source from **Sample photos** to an **Old archive**.
 3. **Review** shows one photo at a time, with the next ones waiting underneath.
    - Swipe right or tap **Keep**: the photo stays whole and glides into the Keep button.
    - Swipe left or tap **Clear**: the photo cracks open along the logo's line and dissolves.
@@ -37,7 +41,8 @@ Intro ──► Home ──► Start cleaning ──► Review ──► Keep / 
    places where cleared photos were, and the grid breathes apart.
 
 For Lab 1 the photos are 12 sample images bundled in `Assets.xcassets`, and "Clear"
-only marks a photo. Nothing is deleted from the phone.
+only marks a photo. Nothing is deleted from the phone. Since Lab 4 there is also an
+**Old archive** of 8 photos, stored in an older format and read through an adapter.
 
 ## Project structure
 
@@ -45,12 +50,18 @@ only marks a photo. Nothing is deleted from the phone.
 Clearing/
 ├── Models/
 │   ├── Photo.swift                  data about one photo
+│   ├── PhotoSource.swift            Sample photos or Old archive
 │   └── ReviewSession.swift          ReviewMode + ReviewSession (built by the Builder)
 ├── Protocols/
 │   ├── PhotoRepository.swift        where photos come from (abstraction)
 │   └── PhotoAction.swift            something you can do to a photo (abstraction)
 ├── Repositories/
 │   └── LocalPhotoRepository.swift   sample photos from the asset catalog
+├── Legacy/
+│   ├── LegacyPhoto.swift            the old archive's photo format
+│   └── LegacyPhotoProvider.swift    the old archive, with its own interface
+├── Adapters/                        Adapter
+│   └── LegacyPhotoRepositoryAdapter.swift  makes the old archive look like a PhotoRepository
 ├── Actions/
 │   ├── KeepPhotoAction.swift
 │   └── DeletePhotoAction.swift
@@ -79,10 +90,16 @@ Clearing/
 │   ├── PausedState.swift
 │   ├── FinishedState.swift
 │   └── ReviewSessionContext.swift   holds the current state and delegates to it
+├── Decorators/                      Decorator
+│   ├── PhotoActionDecorator.swift   wraps a PhotoAction and passes every call on
+│   ├── LoggingPhotoActionDecorator.swift
+│   └── HapticPhotoActionDecorator.swift
+├── Facades/                         Facade
+│   └── PhotoReviewFacade.swift      one simple entry point to the whole review subsystem
 ├── Services/
 │   └── PhotoReviewService.swift     review rules: current photo, what comes next, finished
 ├── ViewModels/
-│   └── PhotoReviewViewModel.swift   texts and numbers for the screens
+│   └── PhotoReviewViewModel.swift   texts and numbers for the screens, talks only to the facade
 ├── DesignSystem/
 │   ├── Theme.swift                  colors, type, spacing, radii, motion and haptics
 │   └── Split.swift                  the "opening" shape: logo, icons, cracks, progress
@@ -130,7 +147,8 @@ value from 0 (a closed photo) to 1 (fully open), and the whole app reuses it:
 - **Motion:** small interactions are fast springs, gestures follow the finger and
   settle with springs, navigation is calm, completion is slow. All values live in `Motion`.
 - **Haptics:** light when you touch, medium at the decision point, soft for Keep,
-  crisp for Clear, success at the end. All values live in `Haptics`.
+  crisp for Clear, success at the end. All values live in `Haptics`. Keep and Clear are
+  played by `HapticPhotoActionDecorator` (Lab 4), the others by the screens.
 - **Accessibility:** Dynamic Type (screens scroll, stats stack), VoiceOver labels and
   Keep/Clear actions on the photo, Reduce Motion (no tilt or flying, simple fades),
   Light and Dark Mode.
@@ -223,7 +241,7 @@ protocol PhotoRepository {
 }
 
 final class PhotoReviewService {
-    private let repository: PhotoRepository
+    private var repository: PhotoRepository
 
     init(repository: PhotoRepository) {
         self.repository = repository
@@ -231,16 +249,20 @@ final class PhotoReviewService {
 }
 ```
 
-The concrete repository is chosen in only one place, `ClearingApp.swift`:
+The concrete repositories are chosen in only one place, `ClearingApp.swift`:
 
 ```swift
-PhotoReviewService(repository: LocalPhotoRepository())
+PhotoReviewFacade(
+    libraryRepository: LocalPhotoRepository(),
+    archiveRepository: LegacyPhotoRepositoryAdapter(provider: LegacyPhotoProvider()),
+    ...
+)
 ```
 
-Later in the semester this becomes:
+Later in the semester the library becomes:
 
 ```swift
-PhotoReviewService(repository: PhotoKitRepository())
+libraryRepository: PhotoKitRepository()
 ```
 
 and the service, view model and views stay the same.
@@ -261,7 +283,7 @@ choose your Team, and change the Bundle Identifier if Xcode asks for a unique on
 - New actions such as Favorite or Skip (OCP).
 - Strategy pattern for sorting or choosing which photos to review first.
 - Factory for repositories too (actions already use Factory Method since Lab 2).
-- Adapter, Decorator and the remaining SOLID principles (LSP, ISP).
+- The remaining SOLID principles (LSP, ISP).
 
 ## TMPS Lab 2 — Design Patterns
 
@@ -293,8 +315,9 @@ flowchart TD
 - **Where:** `Clearing/Settings/ClearingSettings.swift`. `static let shared` is the one object,
   `private init()` makes a second one impossible. Values are saved to `UserDefaults` in `didSet`.
 - **What it changes in the app:**
-  - **Haptic feedback** off: no vibration anywhere. All 9 vibration calls go through
-    `haptic(...)` in `Theme.swift`, which checks `ClearingSettings.shared.hapticsEnabled`.
+  - **Haptic feedback** off: no vibration anywhere. Every vibration checks
+    `ClearingSettings.shared.hapticsEnabled`: 7 go through `haptic(...)` in `Theme.swift`,
+    and since Lab 4 the Keep and Clear vibrations go through `HapticPhotoActionDecorator`.
   - **Review style** Compact: the review screen hides the photo size and the swipe hint.
 - **Where you change it:** the small menu in the top right corner of Home.
 - **SOLID:** SRP, the class only keeps settings.
@@ -507,7 +530,7 @@ stateDiagram-v2
 ### What stayed from Labs 1 and 2
 
 - **Singleton:** `startReview()` still reads `ClearingSettings.shared.reviewMode`, and every vibration still
-  goes through `haptic(...)`, including the new one for Undo.
+  respects the haptics setting, including the new one for Undo.
 - **Factory Method:** the view model still gets its actions from `makeAction()`, and passes them to the commands.
 - **Builder:** `PhotoReviewService.startReview(mode:)` still builds the session with `ReviewSessionBuilder`.
 - **SRP, OCP, DIP:** the service still has only the review rules, new behavior is in new classes, and
@@ -570,6 +593,359 @@ DIP: the manager knows only `PhotoCommand`, the subject only `ReviewSessionObser
 More classes, and the flow is harder to follow because one tap passes through several objects. Command history
 uses memory, though mine is cleared at each new session. With Observer, it's harder to see who reacts to what.
 State is too much for very simple lifecycles.
+
+## Lab 4 — Structural Design Patterns
+
+Lab 4 adds three structural patterns to the same app. Structural patterns are about **how classes and
+objects are put together** into bigger structures: how one object fits another's interface, how a group
+of objects hides behind one object, and how an object is wrapped to get extra behavior. The Lab 1 SOLID
+structure and the patterns from Labs 2 and 3 stay in place. The only new thing on screen is one more
+choice in the Home menu: **Photo source**, with **Sample photos** and **Old archive**.
+
+| Pattern | Main classes | Purpose |
+|---|---|---|
+| Adapter | `LegacyPhotoRepositoryAdapter`, `LegacyPhotoProvider`, `LegacyPhoto` | Makes an old photo archive with a different interface work as a `PhotoRepository` |
+| Facade | `PhotoReviewFacade` | One simple entry point to the review subsystem (service, Builder, Command, Observer, State) |
+| Decorator | `PhotoActionDecorator`, `LoggingPhotoActionDecorator`, `HapticPhotoActionDecorator` | Adds logging and vibration to Keep and Clear without changing their classes |
+
+### How the three patterns work together
+
+```mermaid
+flowchart TD
+    Views["HomeView / ReviewView"] --> VM["PhotoReviewViewModel"]
+    VM -->|"the only object it talks to"| Facade["PhotoReviewFacade<br/>Facade"]
+    Facade -->|"selectSource(...)"| Service["PhotoReviewService"]
+    Service -->|"getPhotos()"| Repo{"PhotoRepository"}
+    Repo --> Library["LocalPhotoRepository<br/>Sample photos"]
+    Repo --> Adapter["LegacyPhotoRepositoryAdapter<br/>Adapter"]
+    Adapter -->|"fetchArchivedPhotos()"| Legacy["LegacyPhotoProvider<br/>LegacyPhoto: fileName, kilobytes"]
+    Facade -->|"makeAction()"| Factories["Keep / Delete factories<br/>Factory Method, Lab 2"]
+    Facade -->|"wraps the action"| Decorators["HapticPhotoActionDecorator<br/>around LoggingPhotoActionDecorator<br/>Decorator"]
+    Decorators --> Action["KeepPhotoAction / DeletePhotoAction"]
+    Facade -->|"KeepPhotoCommand with the decorated action"| Session["ReviewSessionContext<br/>State + Command, Lab 3"]
+    Session -->|"apply(action)"| Service
+    Session -->|"notify(event)"| Observers["Progress and statistics<br/>Observer, Lab 3"]
+```
+
+What happens when you tap **Keep**:
+
+1. `ReviewView` calls `viewModel.keepCurrentPhoto()`, and the view model calls `facade.keepCurrentPhoto()`.
+2. **Facade:** it takes the Keep action that the Lab 2 factory made, and wraps it in the decorators.
+3. **Decorator:** the action is now `HapticPhotoActionDecorator` around `LoggingPhotoActionDecorator` around `KeepPhotoAction`.
+4. The facade creates a `KeepPhotoCommand` with the decorated action and gives it to the session.
+5. **State:** only `ReviewingState` lets it run. While paused, nothing happens, so nothing is logged and nothing vibrates.
+6. **Command:** the manager runs the command and saves it for Undo. The service calls `action.execute(on:)`.
+   The call goes through both decorators down to `KeepPhotoAction`, which runs **once**. Then the log line is
+   printed and the phone vibrates, if haptics are on.
+7. **Observer:** the command notifies the subject, and progress and statistics update.
+8. The view model copies the numbers from the facade, and SwiftUI redraws.
+
+What happens when you choose **Old archive** on Home:
+
+1. The menu changes `ClearingSettings.shared.photoSource` (Singleton, Lab 2).
+2. `HomeView` sees the change and calls `viewModel.selectSource(.archive)`, which calls `facade.selectSource(.archive)`.
+3. **Facade:** it closes any running review and gives the service the archive repository.
+4. The service starts again with the Builder: `ReviewSessionBuilder().setPhotos(repository.getPhotos())`.
+5. **Adapter:** `getPhotos()` asks the old archive for its `LegacyPhoto` list and converts each one into a `Photo`.
+   Home now shows "8 photos to review · 31,7 MB". The service never knows the photos came from somewhere else.
+
+### 1. Adapter: `LegacyPhotoRepositoryAdapter`
+
+- **What problem it solves:** the app reads photos through `PhotoRepository.getPhotos() -> [Photo]`. The old
+  archive has a different method, `fetchArchivedPhotos()`, and a different model: `LegacyPhoto` has a
+  `fileName` with an extension (`"sample-09.jpg"`) and a size in **kilobytes**, while `Photo` has an
+  `imageName` without the extension and a size in **bytes**. They don't fit together.
+- **Why it is structural:** it doesn't add new behavior. It changes the *shape* of an existing class
+  so it fits into a place built for another interface.
+- **Files:**
+  - `Clearing/Legacy/LegacyPhoto.swift`: the old model (adaptee's data).
+  - `Clearing/Legacy/LegacyPhotoProvider.swift`: the old archive with its own interface (adaptee).
+  - `Clearing/Adapters/LegacyPhotoRepositoryAdapter.swift`: the adapter.
+  - `PhotoRepository` (from Lab 1) is the target interface.
+- **How it works in Clearing:** the adapter implements `PhotoRepository`, keeps a `LegacyPhotoProvider`,
+  and converts every `LegacyPhoto` into a `Photo`:
+
+```swift
+final class LegacyPhotoRepositoryAdapter: PhotoRepository {
+    private let provider: LegacyPhotoProvider
+
+    init(provider: LegacyPhotoProvider) {
+        self.provider = provider
+    }
+
+    func getPhotos() -> [Photo] {
+        provider.fetchArchivedPhotos().map { legacyPhoto in
+            convert(legacyPhoto)
+        }
+    }
+
+    private func convert(_ legacyPhoto: LegacyPhoto) -> Photo {
+        Photo(
+            imageName: URL(filePath: legacyPhoto.fileName).deletingPathExtension().lastPathComponent,
+            sizeInBytes: Int64(legacyPhoto.kilobytes) * 1_000
+        )
+    }
+}
+```
+
+  `"sample-09.jpg"` with `6_100` kilobytes becomes `Photo(imageName: "sample-09", sizeInBytes: 6_100_000)`.
+  `ClearingApp.swift` passes the adapter wherever a `PhotoRepository` is expected:
+  `archiveRepository: LegacyPhotoRepositoryAdapter(provider: LegacyPhotoProvider())`.
+- **Analogy:** a travel plug adapter. A European plug doesn't fit a UK socket. You don't rebuild the phone
+  charger or the wall. You put an adapter between them.
+- **Roles:** Target `PhotoRepository`, Adaptee `LegacyPhotoProvider`, Adapter `LegacyPhotoRepositoryAdapter`,
+  Client `PhotoReviewService`.
+
+### 2. Facade: `PhotoReviewFacade`
+
+- **What problem it solves:** after Lab 3 the view model had to hold and connect nine objects: the service,
+  both factories, both actions, the subject, two observers and the session. It also built the commands itself.
+  The screen's helper class knew every detail of the review subsystem.
+- **Why it is structural:** it is about how the objects are organised. The subsystem classes stay the same.
+  One new object stands in front of them, and the client talks only to that object.
+- **File:** `Clearing/Facades/PhotoReviewFacade.swift`.
+- **How it works in Clearing:** the facade creates and connects the subsystem in its `init`. Its public methods
+  are short, and each one delegates:
+
+| Facade method | What it delegates to |
+|---|---|
+| `selectSource(_:)` | `session.close()` and `reviewService.changeRepository(to:)` |
+| `startReview(mode:)` | `session.close()`, `session.start(mode:)`, the factories' `makeAction()` |
+| `keepCurrentPhoto()` / `deleteCurrentPhoto()` | decorates the action, creates the command, `session.perform(command)` |
+| `undoLastDecision()` | `session.undo()` |
+| `pauseReview()` / `resumeReview()` / `closeReview()` | `session.pause()` / `resume()` / `close()` |
+
+  It also has read-only values for the screen, such as `currentPhoto`, `canUndo`, `progress` and `keptCount`,
+  each read from the service, the session or an observer. The view model now has one dependency:
+
+```swift
+init(facade: PhotoReviewFacade) {
+    self.facade = facade
+    refresh()
+}
+
+func keepCurrentPhoto() {
+    facade.keepCurrentPhoto()
+    refresh()
+}
+```
+
+  The rules didn't move into the facade. The service still decides which photo is current, the states still
+  decide what is allowed, the commands still do and undo, and the observers still count.
+- **Dependencies are explicit:** the facade receives the two repositories and the two factories as protocols,
+  and `ClearingApp.swift` chooses the concrete classes.
+- **Analogy:** a hotel reception desk. You ask one person for a room, a taxi or breakfast, and they talk to
+  housekeeping, the kitchen and the drivers for you.
+
+### 3. Decorator: `PhotoActionDecorator`
+
+- **What problem it solves:** I wanted Keep and Clear to also write a log line and vibrate. Putting that code
+  inside `KeepPhotoAction` and `DeletePhotoAction` would mix three jobs in one class and repeat it in both.
+- **Why it is structural:** a decorator is built by *wrapping* one object in another object with the same
+  interface. The structure (a chain of wrappers) is what adds the behavior.
+- **Files** (`Clearing/Decorators/`):
+  - `PhotoActionDecorator.swift`: the base decorator. It is a `PhotoAction`, holds a `PhotoAction`, and passes every call on.
+  - `LoggingPhotoActionDecorator.swift`: after the action runs, it writes `"Keep sample-09"` or `"Undo Keep sample-09"`.
+  - `HapticPhotoActionDecorator.swift`: after the action runs, it vibrates if `ClearingSettings.shared.hapticsEnabled` is on.
+- **How it works in Clearing:**
+
+```swift
+class PhotoActionDecorator: PhotoAction {
+    private let wrappedAction: PhotoAction
+
+    init(wrapping action: PhotoAction) {
+        wrappedAction = action
+    }
+
+    var handledPhotos: [Photo] {
+        wrappedAction.handledPhotos
+    }
+
+    func execute(on photo: Photo) {
+        wrappedAction.execute(on: photo)
+    }
+
+    func undo(on photo: Photo) {
+        wrappedAction.undo(on: photo)
+    }
+}
+
+final class HapticPhotoActionDecorator: PhotoActionDecorator {
+    private let playFeedback: () -> Void
+
+    init(wrapping action: PhotoAction, playFeedback: @escaping () -> Void) {
+        self.playFeedback = playFeedback
+        super.init(wrapping: action)
+    }
+
+    override func execute(on photo: Photo) {
+        super.execute(on: photo)
+        if ClearingSettings.shared.hapticsEnabled {
+            playFeedback()
+        }
+    }
+}
+```
+
+  The facade combines them right before it creates a command:
+
+```swift
+private func decorate(_ action: PhotoAction, name: String, playFeedback: @escaping () -> Void) -> PhotoAction {
+    let loggedAction = LoggingPhotoActionDecorator(wrapping: action, name: name) { message in
+        print(message)
+    }
+    return HapticPhotoActionDecorator(wrapping: loggedAction, playFeedback: playFeedback)
+}
+```
+
+  - Every decorator calls `super` exactly once, so the real action runs exactly once.
+  - Because a decorator is also a `PhotoAction`, one decorator can wrap another, in any order.
+  - `handledPhotos` is passed on too, so the Finished screen still knows which photos were cleared.
+  - Undo goes through the same wrappers, so the log also shows `"Undo Clear sample-02"`.
+  - Keep and Clear were vibrating from `ReviewView` before. That vibration moved into the decorator
+    (`Haptics.playKeep` and `Haptics.playClear`, with the same feel), so there is no double vibration.
+  - `KeepPhotoAction` and `DeletePhotoAction` did not change.
+- **Analogy:** a phone case. The phone works the same. The case adds protection, and you can add a
+  wallet case on top. The phone never knows how many layers it is in.
+- **To see it:** run the app from Xcode and look at the console while you review photos.
+
+### Why Adapter, Facade and Decorator for Clearing
+
+| Pattern | Does Clearing need it now? |
+|---|---|
+| **Adapter** | Yes. The app already reads photos through `PhotoRepository`, and photos can come from places with other interfaces: the old archive now, PhotoKit later. |
+| **Facade** | Yes. After Lab 3 the view model coordinated nine objects. Now it talks to one. |
+| **Decorator** | Yes. `PhotoAction` already exists, and logging and vibration are extras that shouldn't live inside Keep and Delete. |
+| Bridge | Not yet. Clearing has no two independent things that both vary (for example many report types × many output formats). |
+| Composite | Not yet. Clearing has a flat list of photos, with no albums inside albums. |
+| Flyweight | Not yet. 12 photos don't use enough memory to need sharing. It would matter with thousands of photos. |
+| Proxy | Not yet. The photos are local and cheap to load. It would matter with PhotoKit or cloud photos. |
+
+### The other structural patterns, in theory
+
+- **Bridge:** splits one big class tree into two separate trees, an abstraction and an implementation,
+  connected by a reference, so both can grow on their own. *Clearing example:* a `CleaningReport`
+  (Short or Detailed) that uses a `ReportRenderer` (on screen or PDF). Without Bridge you would need
+  4 classes (ShortScreen, ShortPDF, DetailedScreen, DetailedPDF). With Bridge it's 2 + 2.
+  *Analogy:* a TV remote and the TV. Any remote can work with any TV through the same buttons.
+- **Composite:** lets you treat a single object and a group of objects the same way, as a tree.
+  *Clearing example:* an `Album` and a `Photo` both have `sizeInBytes`. An album's size is the sum of
+  its children, which can be photos or other albums. The app could then show "space to free" for a whole album.
+  *Analogy:* folders and files on a computer.
+- **Flyweight:** saves memory by sharing the parts that are the same in many objects, and keeping only the
+  different parts in each object. *Clearing example:* with 10,000 photos, every card could share one decoded
+  thumbnail per image from a cache, instead of each card loading its own copy.
+  *Analogy:* a font. The letter "e" is drawn once and reused everywhere in the text.
+- **Proxy:** an object with the same interface as another one, standing in front of it to control access.
+  It can load the real object lazily, check permissions, or cache. *Clearing example:* a `PhotoKitRepositoryProxy`
+  that asks for photo library permission first, and only then creates the real PhotoKit repository.
+  *Difference from Decorator:* a decorator adds behavior and is chosen by the client, while a proxy controls
+  access to the real object and often creates or manages it.
+  *Analogy:* a credit card is a proxy for your bank account.
+
+### What stayed from Labs 1, 2 and 3
+
+- **SRP:** the view model only prepares texts and numbers, the facade only coordinates, each decorator adds one behavior.
+- **OCP:** logging and vibration are new classes, and `KeepPhotoAction`, `DeletePhotoAction` and `LocalPhotoRepository` didn't change.
+  A new photo source is a new adapter.
+- **DIP:** the facade and the service depend on `PhotoRepository` and `PhotoActionFactory`. `ClearingApp.swift` is still the
+  only place that chooses the concrete classes.
+- **Singleton:** `ClearingSettings` got one more setting, `photoSource`. The haptic decorator reads `hapticsEnabled`.
+- **Factory Method:** the facade still gets the actions from `makeAction()`. The decorators wrap what the factories make.
+- **Builder:** choosing a source restarts the service, which builds the session with `ReviewSessionBuilder`.
+- **Command:** the commands now carry decorated actions, so Undo also goes through the decorators.
+- **Observer:** the facade attaches the same two observers. Progress and statistics work as before.
+- **State:** the facade sends every request through the session, so Pause still blocks Keep, Clear and Undo.
+- **Small changes to existing code:**
+  - `PhotoReviewService`: the repository is now `var`, with `changeRepository(to:)`.
+  - `ClearingSettings`: `photoSource`, saved in `UserDefaults`.
+  - `Theme.swift`: `Haptics.keep` and `Haptics.clear` became `Haptics.playKeep()` and `Haptics.playClear()`, used by the haptic decorator.
+  - `ReviewView`: its two Keep and Clear vibrations were removed, because the decorator plays them now.
+  - `HomeView`: the **Photo source** choice in the menu.
+  - `ClearingApp.swift` and the previews create the facade.
+
+### Presentation script
+
+> "For Lab 4 I added three structural patterns to Clearing. Structural patterns are about how objects are
+> put together.
+>
+> First, **Adapter**. I have an old photo archive, `LegacyPhotoProvider`. It returns `LegacyPhoto`, with a file
+> name like `sample-09.jpg` and a size in kilobytes, and its method is called `fetchArchivedPhotos`. My app only
+> understands `PhotoRepository` with `getPhotos()` and the `Photo` model. `LegacyPhotoRepositoryAdapter` implements
+> `PhotoRepository`, and converts the names and the sizes. On Home I choose **Old archive** in the menu, and the
+> library shows 8 photos and 31.7 MB. The service didn't change at all.
+>
+> Second, **Facade**. After Lab 3 my view model created and connected the service, the factories, the session,
+> the subject and the observers. Now `PhotoReviewFacade` does that, and the view model talks only to the facade
+> with simple methods: `startReview`, `keepCurrentPhoto`, `undoLastDecision`, `pauseReview`. The facade only
+> delegates. The rules stayed in their classes.
+>
+> Third, **Decorator**. I wanted Keep and Clear to log and vibrate, without changing `KeepPhotoAction` or
+> `DeletePhotoAction`. `PhotoActionDecorator` is a `PhotoAction` that wraps another `PhotoAction`. The logging
+> decorator writes a line, and the haptic decorator vibrates only if haptics are on in settings. Here in the
+> console you can see 'Keep sample-09', and after Undo, 'Undo Keep sample-09'.
+>
+> All three work with the old patterns. One tap on Keep goes through the facade, the factory's action is
+> wrapped in decorators, the command runs it, the state checks that it's allowed, and the observers update
+> the progress."
+
+Demo order: Home menu, **Old archive**, then Start, Keep, Clear, Undo, Pause and the Xcode console.
+
+### Presentation Q&A
+
+**1. What are structural design patterns?**
+Patterns about how classes and objects are combined into bigger structures. Creational patterns create objects,
+behavioral patterns are about how they communicate, and structural patterns are about how they fit together.
+
+**2. What does the Adapter do in your app?**
+It makes `LegacyPhotoProvider`, which has a different method and model, work as a `PhotoRepository`.
+It converts `LegacyPhoto` into `Photo`: it removes `.jpg` and changes kilobytes into bytes.
+
+**3. Why not just change `LegacyPhotoProvider` to implement `PhotoRepository`?**
+In a real app an old or external source is code you can't or shouldn't change, like a library or an old module
+other code still uses. The adapter keeps both sides untouched, and the conversion is in one place.
+
+**4. Is your Adapter a class adapter or an object adapter?**
+An object adapter. It holds a `LegacyPhotoProvider` and calls it. A class adapter would inherit from the
+adaptee, but Swift has single inheritance, so composition is the usual choice.
+
+**5. What does the Facade hide?**
+The service, the two factories, the two actions, the subject, the two observers, the session with its states and
+command manager, and how commands are created. The view model only calls simple methods like `keepCurrentPhoto()`.
+
+**6. Isn't the Facade a "god object"?**
+No. It has no review rules. Every method is one or two calls to the subsystem. The rules are still in
+`PhotoReviewService`, the states, the commands and the observers.
+
+**7. Can code still use the subsystem without the Facade?**
+Yes. A facade is a shortcut, not a wall. `PhotoReviewService` and the other classes are still normal classes.
+
+**8. How is a Decorator different from inheritance?**
+With inheritance I would need classes like `LoggingKeepAction`, `HapticKeepAction`, `LoggingHapticKeepAction`,
+and the same again for Delete. With decorators I wrap at runtime and combine them freely: 2 decorators work for every action.
+
+**9. How do you make sure the wrapped action runs only once?**
+The base decorator calls `wrappedAction.execute(on:)` once, and every subclass calls `super.execute(on:)` once,
+then adds its extra work.
+
+**10. Does the haptic decorator respect the settings?**
+Yes. It checks `ClearingSettings.shared.hapticsEnabled` before it vibrates. The action itself always runs.
+
+**11. What is the difference between Decorator and Proxy?**
+Both have the same interface as the wrapped object. A decorator adds behavior, and you can stack several of them.
+A proxy controls access to the real object, for example loading it lazily or checking permissions.
+
+**12. What is the difference between Adapter and Facade?**
+An adapter changes one interface into another interface that a client already expects. A facade creates a new,
+simpler interface for a whole group of classes.
+
+**13. How do the new patterns work with the old ones?**
+The facade uses the Factory Method to get actions, wraps them with decorators, puts them in Command objects,
+sends them through the State session, and the Observers update the numbers. The adapter feeds the Builder through `PhotoRepository`.
+
+**14. What are the disadvantages?**
+More classes, and one tap now passes through more objects, so it's harder to follow in a debugger. Many
+decorators can make the call chain long. A facade can grow too big if every new feature is added to it.
 
 ## Credits
 

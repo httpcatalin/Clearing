@@ -17,14 +17,22 @@ final class ClearingSettings {
         }
     }
 
+    var photoSource: PhotoSource {
+        didSet {
+            UserDefaults.standard.set(photoSource.rawValue, forKey: Keys.photoSource)
+        }
+    }
+
     private init() {
         let defaults = UserDefaults.standard
         hapticsEnabled = defaults.object(forKey: Keys.hapticsEnabled) as? Bool ?? true
         reviewMode = ReviewMode(rawValue: defaults.string(forKey: Keys.reviewMode) ?? "") ?? .detailed
+        photoSource = PhotoSource(rawValue: defaults.string(forKey: Keys.photoSource) ?? "") ?? .library
     }
 
     private enum Keys {
         static let hapticsEnabled = "settings.hapticsEnabled"
         static let reviewMode = "settings.reviewMode"
+        static let photoSource = "settings.photoSource"
     }
 }

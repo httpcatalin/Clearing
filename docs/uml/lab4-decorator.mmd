@@ -1,0 +1,50 @@
+classDiagram
+    direction TB
+
+    class PhotoAction {
+        <<protocol>>
+        +handledPhotos: List~Photo~
+        +execute(on: Photo)
+        +undo(on: Photo)
+    }
+
+    class KeepPhotoAction {
+        <<concrete component>>
+    }
+
+    class DeletePhotoAction {
+        <<concrete component>>
+    }
+
+    class PhotoActionDecorator {
+        <<base decorator>>
+        -wrappedAction: PhotoAction
+        +handledPhotos: List~Photo~
+        +execute(on: Photo)
+        +undo(on: Photo)
+    }
+
+    class LoggingPhotoActionDecorator {
+        -name: String
+        -log: closure (String)
+        +execute(on: Photo)
+        +undo(on: Photo)
+    }
+
+    class HapticPhotoActionDecorator {
+        -playFeedback: closure
+        +execute(on: Photo)
+    }
+
+    class ClearingSettings {
+        <<Singleton>>
+        +hapticsEnabled: Bool
+    }
+
+    PhotoAction <|.. KeepPhotoAction
+    PhotoAction <|.. DeletePhotoAction
+    PhotoAction <|.. PhotoActionDecorator
+    PhotoActionDecorator o-- PhotoAction : wraps
+    PhotoActionDecorator <|-- LoggingPhotoActionDecorator
+    PhotoActionDecorator <|-- HapticPhotoActionDecorator
+    HapticPhotoActionDecorator ..> ClearingSettings : checks hapticsEnabled

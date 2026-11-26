@@ -1,0 +1,50 @@
+classDiagram
+    direction TB
+
+    class PhotoReviewService {
+        <<client>>
+        -repository: PhotoRepository
+        +startReview(mode: ReviewMode)
+        +changeRepository(to: PhotoRepository)
+    }
+
+    class PhotoRepository {
+        <<target protocol>>
+        +getPhotos() List~Photo~
+    }
+
+    class LocalPhotoRepository {
+        +getPhotos() List~Photo~
+    }
+
+    class LegacyPhotoRepositoryAdapter {
+        <<adapter>>
+        -provider: LegacyPhotoProvider
+        +getPhotos() List~Photo~
+        -convert(legacyPhoto: LegacyPhoto) Photo
+    }
+
+    class LegacyPhotoProvider {
+        <<adaptee>>
+        -archivedPhotos: List~LegacyPhoto~
+        +fetchArchivedPhotos() List~LegacyPhoto~
+    }
+
+    class LegacyPhoto {
+        <<struct>>
+        +fileName: String
+        +kilobytes: Int
+    }
+
+    class Photo {
+        <<struct>>
+        +imageName: String
+        +sizeInBytes: Int64
+    }
+
+    PhotoReviewService o-- PhotoRepository
+    PhotoRepository <|.. LocalPhotoRepository
+    PhotoRepository <|.. LegacyPhotoRepositoryAdapter
+    LegacyPhotoRepositoryAdapter o-- LegacyPhotoProvider : wraps
+    LegacyPhotoProvider ..> LegacyPhoto : returns
+    LegacyPhotoRepositoryAdapter ..> Photo : converts into

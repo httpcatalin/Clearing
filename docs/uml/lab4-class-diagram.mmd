@@ -1,0 +1,107 @@
+classDiagram
+    direction TB
+
+    class ClearingApp {
+        <<struct>>
+    }
+
+    class PhotoReviewViewModel {
+        <<final class>>
+        -facade: PhotoReviewFacade
+    }
+
+    class PhotoReviewFacade {
+        <<Facade>>
+        +selectSource(source)
+        +startReview(mode)
+        +keepCurrentPhoto()
+        +deleteCurrentPhoto()
+        +undoLastDecision()
+        +pauseReview()
+        +resumeReview()
+        +closeReview()
+    }
+
+    class ClearingSettings {
+        <<Singleton>>
+        +hapticsEnabled: Bool
+        +reviewMode: ReviewMode
+        +photoSource: PhotoSource
+    }
+
+    class PhotoReviewService {
+        -repository: PhotoRepository
+        +changeRepository(to)
+    }
+
+    class PhotoRepository {
+        <<protocol>>
+        +getPhotos() List~Photo~
+    }
+
+    class LocalPhotoRepository
+    class LegacyPhotoRepositoryAdapter {
+        <<Adapter>>
+    }
+    class LegacyPhotoProvider {
+        <<adaptee>>
+    }
+
+    class ReviewSessionBuilder {
+        <<Builder>>
+    }
+
+    class PhotoActionFactory {
+        <<Factory Method>>
+    }
+
+    class PhotoAction {
+        <<protocol>>
+    }
+
+    class KeepPhotoAction
+    class DeletePhotoAction
+
+    class PhotoActionDecorator {
+        <<Decorator>>
+    }
+
+    class LoggingPhotoActionDecorator
+    class HapticPhotoActionDecorator
+
+    class ReviewSessionContext {
+        <<State context>>
+    }
+
+    class PhotoCommandManager {
+        <<Command invoker>>
+    }
+
+    class ReviewSessionSubject {
+        <<Observer subject>>
+    }
+
+    ClearingApp --> PhotoReviewViewModel : creates
+    ClearingApp ..> PhotoReviewFacade : creates with concrete classes
+    PhotoReviewViewModel --> PhotoReviewFacade
+    PhotoReviewViewModel ..> ClearingSettings : reviewMode
+    PhotoReviewFacade o-- PhotoReviewService
+    PhotoReviewFacade o-- PhotoRepository : library and archive
+    PhotoReviewFacade o-- PhotoActionFactory
+    PhotoReviewFacade o-- ReviewSessionContext
+    PhotoReviewFacade o-- ReviewSessionSubject
+    PhotoReviewFacade ..> PhotoActionDecorator : decorates actions
+    PhotoReviewService o-- PhotoRepository
+    PhotoReviewService ..> ReviewSessionBuilder : uses
+    PhotoRepository <|.. LocalPhotoRepository
+    PhotoRepository <|.. LegacyPhotoRepositoryAdapter
+    LegacyPhotoRepositoryAdapter o-- LegacyPhotoProvider
+    PhotoActionFactory ..> PhotoAction : creates
+    PhotoAction <|.. KeepPhotoAction
+    PhotoAction <|.. DeletePhotoAction
+    PhotoAction <|.. PhotoActionDecorator
+    PhotoActionDecorator o-- PhotoAction : wraps
+    PhotoActionDecorator <|-- LoggingPhotoActionDecorator
+    PhotoActionDecorator <|-- HapticPhotoActionDecorator
+    HapticPhotoActionDecorator ..> ClearingSettings : hapticsEnabled
+    ReviewSessionContext o-- PhotoCommandManager

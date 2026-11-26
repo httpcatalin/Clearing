@@ -30,9 +30,12 @@ private struct EmptyPhotoRepository: PhotoRepository {
 
 private func makeViewModel() -> PhotoReviewViewModel {
     PhotoReviewViewModel(
-        reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
-        keepActionFactory: KeepPhotoActionFactory(),
-        deleteActionFactory: DeletePhotoActionFactory()
+        facade: PhotoReviewFacade(
+            libraryRepository: LocalPhotoRepository(),
+            archiveRepository: LocalPhotoRepository(),
+            keepActionFactory: KeepPhotoActionFactory(),
+            deleteActionFactory: DeletePhotoActionFactory()
+        )
     )
 }
 

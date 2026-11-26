@@ -17,29 +17,10 @@ final class PhotoReviewViewModel {
     private(set) var removedPhotoIDs: Set<Photo.ID> = []
     private(set) var reviewMode: ReviewMode = .detailed
 
-    private let reviewService: PhotoReviewService
-    private let keepActionFactory: PhotoActionFactory
-    private let deleteActionFactory: PhotoActionFactory
-    private var keepAction: PhotoAction
-    private var deleteAction: PhotoAction
-    private let subject = ReviewSessionSubject()
-    private let progressObserver = ReviewProgressObserver()
-    private let statisticsObserver = ReviewStatisticsObserver()
-    private let session: ReviewSessionContext
+    private let facade: PhotoReviewFacade
 
-    init(
-        reviewService: PhotoReviewService,
-        keepActionFactory: PhotoActionFactory,
-        deleteActionFactory: PhotoActionFactory
-    ) {
-        self.reviewService = reviewService
-        self.keepActionFactory = keepActionFactory
-        self.deleteActionFactory = deleteActionFactory
-        keepAction = keepActionFactory.makeAction()
-        deleteAction = deleteActionFactory.makeAction()
-        session = ReviewSessionContext(reviewService: reviewService, subject: subject)
-        subject.attach(progressObserver)
-        subject.attach(statisticsObserver)
+    init(facade: PhotoReviewFacade) {
+        self.facade = facade
         refresh()
     }
 
@@ -91,60 +72,60 @@ final class PhotoReviewViewModel {
         formattedSize(spaceToFree)
     }
 
+    func selectSource(_ source: PhotoSource) {
+        facade.selectSource(source)
+        refresh()
+    }
+
     func startReview() {
-        session.close()
-        session.start(mode: ClearingSettings.shared.reviewMode)
-        keepAction = keepActionFactory.makeAction()
-        deleteAction = deleteActionFactory.makeAction()
+        facade.startReview(mode: ClearingSettings.shared.reviewMode)
         refresh()
     }
 
     func keepCurrentPhoto() {
-        guard let currentPhoto else { return }
-        session.perform(KeepPhotoCommand(photo: currentPhoto, action: keepAction, reviewService: reviewService, subject: subject))
+        facade.keepCurrentPhoto()
         refresh()
     }
 
     func deleteCurrentPhoto() {
-        guard let currentPhoto else { return }
-        session.perform(DeletePhotoCommand(photo: currentPhoto, action: deleteAction, reviewService: reviewService, subject: subject))
+        facade.deleteCurrentPhoto()
         refresh()
     }
 
     func undoLastDecision() {
-        session.undo()
+        facade.undoLastDecision()
         refresh()
     }
 
     func pauseReview() {
-        session.pause()
+        facade.pauseReview()
         refresh()
     }
 
     func resumeReview() {
-        session.resume()
+        facade.resumeReview()
         refresh()
     }
 
     func closeReview() {
-        session.close()
+        facade.closeReview()
         refresh()
     }
 
     private func refresh() {
-        photos = reviewService.photos
-        currentPhoto = reviewService.currentPhoto
-        reviewMode = reviewService.mode
-        isPaused = session.isPaused
-        canDecide = session.canDecide
-        canUndo = session.canUndo
-        reviewedCount = progressObserver.reviewedCount
-        progress = progressObserver.progress
-        isFinished = progressObserver.isComplete
-        keptCount = statisticsObserver.keptCount
-        deletedCount = statisticsObserver.deletedCount
-        spaceToFree = statisticsObserver.spaceToFree
-        removedPhotoIDs = Set(deleteAction.handledPhotos.map(\.id))
+        photos = facade.photos
+        currentPhoto = facade.currentPhoto
+        reviewMode = facade.reviewMode
+        isPaused = facade.isPaused
+        canDecide = facade.canDecide
+        canUndo = facade.canUndo
+        reviewedCount = facade.reviewedCount
+        progress = facade.progress
+        isFinished = facade.isFinished
+        keptCount = facade.keptCount
+        deletedCount = facade.deletedCount
+        spaceToFree = facade.spaceToFree
+        removedPhotoIDs = facade.removedPhotoIDs
     }
 
     private var currentPosition: Int {

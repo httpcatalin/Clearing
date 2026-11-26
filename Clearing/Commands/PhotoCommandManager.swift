@@ -1,5 +1,8 @@
 import Foundation
 
+// multe fisiere pentru o actiune simpla
+// lista ocupa memorie: un obiect pentru fiecare poza asa ii rau
+// zato tine minte tot
 final class PhotoCommandManager {
     private var history: [PhotoCommand] = []
 

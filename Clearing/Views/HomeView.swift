@@ -50,6 +50,9 @@ struct HomeView: View {
                 reveal()
             }
         }
+        .onChange(of: settings.photoSource, initial: true) { _, source in
+            viewModel.selectSource(source)
+        }
     }
 
     private var brandHeader: some View {
@@ -77,6 +80,11 @@ struct HomeView: View {
             Picker("Review style", selection: $settings.reviewMode) {
                 Text("Detailed").tag(ReviewMode.detailed)
                 Text("Compact").tag(ReviewMode.compact)
+            }
+
+            Picker("Photo source", selection: $settings.photoSource) {
+                Text("Sample photos").tag(PhotoSource.library)
+                Text("Old archive").tag(PhotoSource.archive)
             }
         } label: {
             Image(systemName: "slider.horizontal.3")
@@ -179,9 +187,12 @@ private struct EmptyPhotoRepository: PhotoRepository {
 #Preview("Library") {
     HomeView(
         viewModel: PhotoReviewViewModel(
-            reviewService: PhotoReviewService(repository: LocalPhotoRepository()),
-            keepActionFactory: KeepPhotoActionFactory(),
-            deleteActionFactory: DeletePhotoActionFactory()
+            facade: PhotoReviewFacade(
+                libraryRepository: LocalPhotoRepository(),
+                archiveRepository: LegacyPhotoRepositoryAdapter(provider: LegacyPhotoProvider()),
+                keepActionFactory: KeepPhotoActionFactory(),
+                deleteActionFactory: DeletePhotoActionFactory()
+            )
         ),
         isActive: true,
         onStart: {}
@@ -191,9 +202,12 @@ private struct EmptyPhotoRepository: PhotoRepository {
 #Preview("Empty") {
     HomeView(
         viewModel: PhotoReviewViewModel(
-            reviewService: PhotoReviewService(repository: EmptyPhotoRepository()),
-            keepActionFactory: KeepPhotoActionFactory(),
-            deleteActionFactory: DeletePhotoActionFactory()
+            facade: PhotoReviewFacade(
+                libraryRepository: EmptyPhotoRepository(),
+                archiveRepository: EmptyPhotoRepository(),
+                keepActionFactory: KeepPhotoActionFactory(),
+                deleteActionFactory: DeletePhotoActionFactory()
+            )
         ),
         isActive: true,
         onStart: {}
