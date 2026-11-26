@@ -1,0 +1,121 @@
+classDiagram
+    direction TB
+
+    class ClearingApp {
+        <<struct>>
+    }
+
+    class ClearingSettings {
+        <<Singleton>>
+        +shared: ClearingSettings$
+        +reviewMode: ReviewMode
+    }
+
+    class PhotoReviewViewModel {
+        <<final class>>
+        -subject: ReviewSessionSubject
+        -progressObserver: ReviewProgressObserver
+        -statisticsObserver: ReviewStatisticsObserver
+        -session: ReviewSessionContext
+        +startReview()
+        +keepCurrentPhoto()
+        +deleteCurrentPhoto()
+        +undoLastDecision()
+        +pauseReview()
+        +resumeReview()
+        +closeReview()
+    }
+
+    class ReviewSessionContext {
+        <<State context>>
+        -state: ReviewSessionState
+        +commandManager: PhotoCommandManager
+    }
+
+    class ReviewSessionState {
+        <<protocol>>
+    }
+
+    class ReadyState
+    class ReviewingState
+    class PausedState
+    class FinishedState
+
+    class PhotoCommandManager {
+        <<Command invoker>>
+        -history: List~PhotoCommand~
+    }
+
+    class PhotoCommand {
+        <<protocol>>
+        +execute()
+        +undo()
+    }
+
+    class KeepPhotoCommand
+    class DeletePhotoCommand
+
+    class ReviewSessionSubject {
+        <<Observer subject>>
+        +attach(observer)
+        +detach(observer)
+        +notify(event)
+    }
+
+    class ReviewSessionObserver {
+        <<protocol>>
+        +update(with: ReviewSessionEvent)
+    }
+
+    class ReviewProgressObserver
+    class ReviewStatisticsObserver
+
+    class PhotoReviewService {
+        <<final class>>
+        +startReview(mode: ReviewMode)
+        +apply(action: PhotoAction)
+        +undo(action: PhotoAction)
+    }
+
+    class PhotoActionFactory {
+        <<protocol>>
+        +makeAction() PhotoAction
+    }
+
+    class PhotoAction {
+        <<protocol>>
+        +execute(on: Photo)
+        +undo(on: Photo)
+    }
+
+    class ReviewSessionBuilder {
+        <<Builder>>
+    }
+
+    ClearingApp --> PhotoReviewViewModel : creates
+    PhotoReviewViewModel ..> ClearingSettings : reads reviewMode
+    PhotoReviewViewModel o-- PhotoReviewService
+    PhotoReviewViewModel o-- PhotoActionFactory
+    PhotoReviewViewModel o-- ReviewSessionContext
+    PhotoReviewViewModel o-- ReviewSessionSubject
+    PhotoReviewViewModel ..> KeepPhotoCommand : creates
+    PhotoReviewViewModel ..> DeletePhotoCommand : creates
+    ReviewSessionContext o-- ReviewSessionState
+    ReviewSessionContext o-- PhotoCommandManager
+    ReviewSessionState <|.. ReadyState
+    ReviewSessionState <|.. ReviewingState
+    ReviewSessionState <|.. PausedState
+    ReviewSessionState <|.. FinishedState
+    PhotoCommandManager o-- PhotoCommand
+    PhotoCommand <|.. KeepPhotoCommand
+    PhotoCommand <|.. DeletePhotoCommand
+    KeepPhotoCommand --> PhotoReviewService
+    DeletePhotoCommand --> PhotoReviewService
+    KeepPhotoCommand --> ReviewSessionSubject : notify
+    DeletePhotoCommand --> ReviewSessionSubject : notify
+    ReviewSessionSubject o-- ReviewSessionObserver
+    ReviewSessionObserver <|.. ReviewProgressObserver
+    ReviewSessionObserver <|.. ReviewStatisticsObserver
+    PhotoReviewService ..> ReviewSessionBuilder : uses
+    PhotoReviewService ..> PhotoAction : uses
+    PhotoActionFactory ..> PhotoAction : creates

@@ -1,0 +1,60 @@
+classDiagram
+    direction TB
+
+    class PhotoReviewViewModel {
+        <<client>>
+    }
+
+    class ReviewSessionContext {
+        <<context>>
+        -state: ReviewSessionState
+        +commandManager: PhotoCommandManager
+        +start(mode: ReviewMode)
+        +pause()
+        +resume()
+        +perform(command: PhotoCommand)
+        +undo()
+        +close()
+        +transition(to: ReviewSessionState)
+    }
+
+    class ReviewSessionState {
+        <<protocol>>
+        +canDecide: Bool
+        +isPaused: Bool
+        +start(mode, context)
+        +pause(context)
+        +resume(context)
+        +perform(command, context)
+        +undo(context)
+        +close(context)
+    }
+
+    class ReadyState {
+        +start(mode, context)
+    }
+
+    class ReviewingState {
+        +canDecide: true
+        +pause(context)
+        +perform(command, context)
+        +undo(context)
+        +close(context)
+    }
+
+    class PausedState {
+        +isPaused: true
+        +resume(context)
+        +close(context)
+    }
+
+    class FinishedState {
+        +close(context)
+    }
+
+    PhotoReviewViewModel --> ReviewSessionContext : session
+    ReviewSessionContext o-- ReviewSessionState : current state
+    ReviewSessionState <|.. ReadyState
+    ReviewSessionState <|.. ReviewingState
+    ReviewSessionState <|.. PausedState
+    ReviewSessionState <|.. FinishedState

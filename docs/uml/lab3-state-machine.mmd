@@ -1,0 +1,10 @@
+stateDiagram-v2
+    direction LR
+    [*] --> Ready
+    Ready --> Reviewing : Start cleaning
+    Reviewing --> Paused : Pause, or leaving the app
+    Paused --> Reviewing : Resume
+    Reviewing --> Finished : last photo reviewed
+    Reviewing --> Ready : X (close)
+    Paused --> Ready : X (close)
+    Finished --> Ready : Done

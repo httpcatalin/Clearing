@@ -1,0 +1,60 @@
+classDiagram
+    direction TB
+
+    class PhotoReviewViewModel {
+        <<client>>
+        +keepCurrentPhoto()
+        +deleteCurrentPhoto()
+        +undoLastDecision()
+    }
+
+    class PhotoCommandManager {
+        <<invoker>>
+        -history: List~PhotoCommand~
+        +canUndo: Bool
+        +execute(command: PhotoCommand)
+        +undoLast()
+        +clearHistory()
+    }
+
+    class PhotoCommand {
+        <<protocol>>
+        +execute()
+        +undo()
+    }
+
+    class KeepPhotoCommand {
+        -photo: Photo
+        -action: PhotoAction
+        +execute()
+        +undo()
+    }
+
+    class DeletePhotoCommand {
+        -photo: Photo
+        -action: PhotoAction
+        +execute()
+        +undo()
+    }
+
+    class PhotoReviewService {
+        <<receiver>>
+        +apply(action: PhotoAction)
+        +undo(action: PhotoAction)
+    }
+
+    class PhotoAction {
+        <<protocol>>
+        +execute(on: Photo)
+        +undo(on: Photo)
+    }
+
+    PhotoReviewViewModel ..> KeepPhotoCommand : creates
+    PhotoReviewViewModel ..> DeletePhotoCommand : creates
+    PhotoReviewViewModel ..> PhotoCommandManager : sends commands through the session
+    PhotoCommandManager o-- PhotoCommand : history
+    PhotoCommand <|.. KeepPhotoCommand
+    PhotoCommand <|.. DeletePhotoCommand
+    KeepPhotoCommand --> PhotoReviewService : apply / undo
+    DeletePhotoCommand --> PhotoReviewService : apply / undo
+    PhotoReviewService ..> PhotoAction : uses

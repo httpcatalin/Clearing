@@ -1,0 +1,54 @@
+classDiagram
+    direction TB
+
+    class ReviewSessionSubject {
+        <<subject>>
+        -observers: List~ReviewSessionObserver~
+        +attach(observer)
+        +detach(observer)
+        +notify(event: ReviewSessionEvent)
+    }
+
+    class ReviewSessionObserver {
+        <<protocol>>
+        +update(with: ReviewSessionEvent)
+    }
+
+    class ReviewProgressObserver {
+        +reviewedCount: Int
+        +totalCount: Int
+        +isComplete: Bool
+        +progress: Double
+    }
+
+    class ReviewStatisticsObserver {
+        +keptCount: Int
+        +deletedCount: Int
+        +spaceToFree: Int64
+    }
+
+    class ReviewSessionEvent {
+        <<enum>>
+        started(totalPhotos)
+        photoKept(photo)
+        photoDeleted(photo)
+        keepUndone(photo)
+        deleteUndone(photo)
+        finished
+    }
+
+    class KeepPhotoCommand
+    class DeletePhotoCommand
+    class ReviewSessionContext
+    class PhotoReviewViewModel
+
+    ReviewSessionSubject o-- ReviewSessionObserver : observers
+    ReviewSessionObserver <|.. ReviewProgressObserver
+    ReviewSessionObserver <|.. ReviewStatisticsObserver
+    ReviewSessionSubject ..> ReviewSessionEvent : sends
+    KeepPhotoCommand --> ReviewSessionSubject : notify
+    DeletePhotoCommand --> ReviewSessionSubject : notify
+    ReviewSessionContext --> ReviewSessionSubject : notify started and finished
+    PhotoReviewViewModel ..> ReviewSessionSubject : attach
+    PhotoReviewViewModel ..> ReviewProgressObserver : reads in refresh()
+    PhotoReviewViewModel ..> ReviewStatisticsObserver : reads in refresh()

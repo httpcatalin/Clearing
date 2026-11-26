@@ -1,0 +1,27 @@
+sequenceDiagram
+    actor User
+    participant View as ReviewView
+    participant VM as PhotoReviewViewModel
+    participant Ctx as ReviewSessionContext
+    participant State as ReviewingState
+    participant Mgr as PhotoCommandManager
+    participant Cmd as KeepPhotoCommand
+    participant Service as PhotoReviewService
+    participant Subject as ReviewSessionSubject
+    participant Obs as Progress and Statistics observers
+
+    User->>View: swipes right or taps Keep
+    View->>VM: keepCurrentPhoto()
+    VM->>Cmd: create with photo, keepAction, service, subject
+    VM->>Ctx: perform(command)
+    Ctx->>State: perform(command, in: context)
+    State->>Mgr: execute(command)
+    Mgr->>Cmd: execute()
+    Cmd->>Service: apply(keepAction)
+    Service-->>Cmd: photo marked, reviewedCount + 1
+    Cmd->>Subject: notify(.photoKept(photo))
+    Subject->>Obs: update(with: .photoKept)
+    Mgr->>Mgr: history.append(command)
+    State->>Ctx: finishIfEveryPhotoIsReviewed()
+    VM->>VM: refresh() copies the numbers
+    VM-->>View: next photo, 2 / 12, Undo enabled
