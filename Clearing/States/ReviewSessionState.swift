@@ -1,5 +1,8 @@
 import Foundation
 
+// multe clase 6 fisiere pentru 4 stari
+// o actiune gresita ii prosta ignorata fara eroare
+// zato fara multe ifuri, si se blocheaza automat butoanele
 protocol ReviewSessionState {
     var canDecide: Bool { get }
     var isPaused: Bool { get }
